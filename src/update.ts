@@ -1,279 +1,150 @@
-import { Id, IdSeeding, Match, MatchGame, Round, Seeding, SeedOrdering, Status } from 'brackets-model';
-import { ordering } from './ordering';
-import { BaseUpdater } from './base/updater';
-import { ChildCountLevel, DeepPartial } from './types';
-import * as helpers from './helpers';
+import { DataTypes } from "brackets-manager";
+import { OmitId } from "brackets-manager";
+import { Id } from "brackets-model";
+import Tournament from "../../models/tournament";
+import Participant from "../../models/participant";
+import Match from "../../models/match";
+import {
+  matches as _matches,
+  filter as _filter,
+  isMatch as _isMatch,
+  remove as _remove,
+} from "lodash-es";
+import { Mongoose } from "mongoose";
 
-export class Update extends BaseUpdater {
+// const flatten = (data: any) => {
+//   const obj = data.toObject()
 
-    /**
-     * Updates partial information of a match. Its id must be given.
-     *
-     * This will update related matches accordingly.
-     *
-     * @param match Values to change in a match.
-     */
-    public async match<M extends Match = Match>(match: DeepPartial<M>): Promise<void> {
-        if (match.id === undefined)
-            throw Error('No match id given.');
+//   Object.keys(obj).forEach((key => {
+//     }
+//   }))
+// }
 
-        const stored = await this.storage.select('match', match.id);
-        if (!stored) throw Error('Match not found.');
+export async function handleUpdate<T extends keyof DataTypes>(
+  mongoose: Mongoose,
+  table: T,
+  filter: Partial<DataTypes[T]> | Id,
+  data: Partial<DataTypes[T]> | DataTypes[T]
+): Promise<boolean> {
+  if (typeof filter === "number") throw TypeError("IDs can't be numbers.");
 
-        await this.updateMatch(stored, match);
-    }
+  const Tournament = mongoose.model("Tournament") as Model<any>;
+  const tournament = await Tournament.findCurrent();
 
-    /**
-     * Updates partial information of a match game. Its id must be given.
-     *
-     * This will update the parent match accordingly.
-     *
-     * @param game Values to change in a match game.
-     */
-    public async matchGame<G extends MatchGame = MatchGame>(game: DeepPartial<G>): Promise<void> {
-        const stored = await this.findMatchGame(game);
+  switch (table) {
+    case "participant":
+      const Participant = mongoose.model("Participant");
+      const d = Participant.translateAliases(data);
 
-        await this.updateMatchGame(stored, game);
-    }
+      if (typeof filter === "string") {
+        return Participant.findByIdAndUpdate(filter, d)
+          .exec()
+          .then(() => true)
+          .catch(err => {console.error(err); return false});
+      }
 
-    /**
-     * Updates the seed ordering of every ordered round in a stage.
-     *
-     * @param stageId ID of the stage.
-     * @param seedOrdering A list of ordering methods.
-     */
-    public async ordering(stageId: Id, seedOrdering: SeedOrdering[]): Promise<void> {
-        const stage = await this.storage.select('stage', stageId);
-        if (!stage) throw Error('Stage not found.');
+      const f = Participant.translateAliases(filter);
+      return Participant.updateMany(f, d)
+        .exec()
+        .then(() => true)
+        .catch(err => {console.error(err); return false});
+    case "stage":
+      const stage = tournament!.stages.id(filter);
+      stage?.set(data);
 
-        helpers.ensureNotRoundRobin(stage);
+      return tournament!
+        .save()
+        .then(() => true)
+        .catch(err => {console.error(err); return false});
+    case "group":
+      if (typeof filter === "string") {
+        const group = tournament!.groups.id(filter);
+        group?.set(data);
+      } else {
+        tournament!.groups.forEach((g) => {
+          if (_isMatch(g, Tournament.translateSubAliases("group", filter))) {
+            g.set(Tournament.translateSubAliases("group", data));
+          }
+        });
+      }
 
-        const roundsToOrder = await this.getOrderedRounds(stage);
-        if (seedOrdering.length !== roundsToOrder.length)
-            throw Error('The count of seed orderings is incorrect.');
+      return tournament!
+        .save()
+        .then(() => true)
+        .catch(err => {console.error(err); return false});
+    case "round":
+      if (typeof filter === "number") {
+        throw TypeError("IDs can't be numbers.");
+      }
 
-        for (let i = 0; i < roundsToOrder.length; i++)
-            await this.updateRoundOrdering(roundsToOrder[i], seedOrdering[i]);
-    }
+      if (typeof filter === "string") {
+        const round = tournament!.rounds.id(filter);
+        round?.set(data);
+      } else {
+        tournament!.rounds.forEach((r) => {
+          if (_isMatch(r, Tournament.translateSubAliases("round", filter))) {
+            r.set(Tournament.translateSubAliases("round", data));
+          }
+        });
+      }
 
-    /**
-     * Updates the seed ordering of a round.
-     *
-     * @param roundId ID of the round.
-     * @param method Seed ordering method.
-     */
-    public async roundOrdering(roundId: Id, method: SeedOrdering): Promise<void> {
-        const round = await this.storage.select('round', roundId);
-        if (!round) throw Error('This round does not exist.');
+      return tournament!
+        .save()
+        .then(() => true)
+        .catch(err => {console.error(err); return false});
+    case "match":
+      const Match = mongoose.model("Match");
+      if (typeof filter === "string") {
+        data = Match.translateAliases(data)
 
-        const stage = await this.storage.select('stage', round.stage_id);
-        if (!stage) throw Error('Stage not found.');
+        return Match.findByIdAndUpdate(filter, data)
+          .exec()
+          .then(() => true)
+          .catch(err => {console.error(err); return false});
+      }
 
-        helpers.ensureNotRoundRobin(stage);
+      return Match.updateMany(
+        Match.translateAliases(filter),
+        Match.translateAliases(data)
+      )
+        .exec()
+        .then(() => true)
+        .catch(err => {console.error(err); return false});
+    case "match_game":
+      if (typeof filter === "string") {
+        const match = await Match.findOne({ "games.id": filter }); //FIXME: probablay a one-lienr way to do this
+        const matchGame = match?.games.id(filter);
+        matchGame?.set(data);
 
-        await this.updateRoundOrdering(round, method);
-    }
+        return match!
+          .save()
+          .then(() => true)
+          .catch(err => {console.error(err); return false});
+      }
 
-    /**
-     * Updates child count of all matches of a given level.
-     *
-     * @param level The level at which to act.
-     * @param id ID of the chosen level.
-     * @param childCount The target child count.
-     */
-    public async matchChildCount(level: ChildCountLevel, id: Id, childCount: number): Promise<void> {
-        switch (level) {
-            case 'stage':
-                await this.updateStageMatchChildCount(id, childCount);
-                break;
-            case 'group':
-                await this.updateGroupMatchChildCount(id, childCount);
-                break;
-            case 'round':
-                await this.updateRoundMatchChildCount(id, childCount);
-                break;
-            case 'match':
-                const match = await this.storage.select('match', id);
-                if (!match) throw Error('Match not found.');
-                await this.adjustMatchChildGames(match, childCount);
-                break;
-            default:
-                throw Error('Unknown child count level.');
+      //FIXME: doesn't rly work for stage or round id's cuz virtuals
+      return Match.updateMany(
+        {},
+        {
+          $set: {
+            "games.$[elem]": data,
+          },
+        },
+        {
+          arrayFilters: [
+            {
+              elem: {
+                filter,
+              },
+            },
+          ],
         }
-    }
+      )
+        .exec()
+        .then(() => true)
+        .catch(err => {console.error(err); return false});
 
-    /**
-     * Updates the seeding of a stage.
-     *
-     * @param stageId ID of the stage.
-     * @param seeding The new seeding.
-     * @param keepSameSize Whether to keep the same size as before for the stage. **Default:** false.
-     */
-    public async seeding(stageId: Id, seeding: Seeding, keepSameSize = false): Promise<void> {
-        await this.updateSeeding(stageId, { seeding }, keepSameSize);
-    }
-
-    /**
-     * Updates the seeding of a stage (with a list of IDs).
-     *
-     * @param stageId ID of the stage.
-     * @param seedingIds The new seeding, containing only IDs.
-     * @param keepSameSize Whether to keep the same size as before for the stage. **Default:** false.
-     */
-    public async seedingIds(stageId: Id, seedingIds: IdSeeding, keepSameSize = false): Promise<void> {
-        await this.updateSeeding(stageId, { seedingIds }, keepSameSize);
-    }
-
-    /**
-     * Confirms the seeding of a stage.
-     * 
-     * This will convert TBDs to BYEs and propagate them.
-     * 
-     * @param stageId ID of the stage.
-     */
-    public async confirmSeeding(stageId: Id): Promise<void> {
-        await this.confirmCurrentSeeding(stageId);
-    }
-
-    /**
-     * Update the seed ordering of a round.
-     *
-     * @param round The round of which to update the ordering.
-     * @param method The new ordering method.
-     */
-    private async updateRoundOrdering(round: Round, method: SeedOrdering): Promise<void> {
-        const matches = await this.storage.select('match', { round_id: round.id });
-        if (!matches) throw Error('This round has no match.');
-
-        if (matches.some(match => match.status > Status.Ready))
-            throw Error('At least one match has started or is completed.');
-
-        const stage = await this.storage.select('stage', round.stage_id);
-        if (!stage) throw Error('Stage not found.');
-        if (stage.settings.size === undefined) throw Error('Undefined stage size.');
-
-        const group = await this.storage.select('group', round.group_id);
-        if (!group) throw Error('Group not found.');
-
-        const inLoserBracket = helpers.isLoserBracket(stage.type, group.number);
-        const roundCountLB = helpers.getLowerBracketRoundCount(stage.settings.size);
-        const seeds = helpers.getSeeds(inLoserBracket, round.number, roundCountLB, matches.length);
-        const positions = ordering[method](seeds);
-
-        await this.applyRoundOrdering(round.number, matches, positions);
-    }
-
-    /**
-     * Updates child count of all matches of a stage.
-     *
-     * @param stageId ID of the stage.
-     * @param childCount The target child count.
-     */
-    private async updateStageMatchChildCount(stageId: Id, childCount: number): Promise<void> {
-        if (!await this.storage.update('match', { stage_id: stageId }, { child_count: childCount }))
-            throw Error('Could not update the match.');
-
-        const matches = await this.storage.select('match', { stage_id: stageId });
-        if (!matches) throw Error('This stage has no match.');
-
-        for (const match of matches)
-            await this.adjustMatchChildGames(match, childCount);
-    }
-
-    /**
-     * Updates child count of all matches of a group.
-     *
-     * @param groupId ID of the group.
-     * @param childCount The target child count.
-     */
-    private async updateGroupMatchChildCount(groupId: Id, childCount: number): Promise<void> {
-        if (!await this.storage.update('match', { group_id: groupId }, { child_count: childCount }))
-            throw Error('Could not update the match.');
-
-        const matches = await this.storage.select('match', { group_id: groupId });
-        if (!matches) throw Error('This group has no match.');
-
-        for (const match of matches)
-            await this.adjustMatchChildGames(match, childCount);
-    }
-
-    /**
-     * Updates child count of all matches of a round.
-     *
-     * @param roundId ID of the round.
-     * @param childCount The target child count.
-     */
-    private async updateRoundMatchChildCount(roundId: Id, childCount: number): Promise<void> {
-        if (!await this.storage.update('match', { round_id: roundId }, { child_count: childCount }))
-            throw Error('Could not update the match.');
-
-        const matches = await this.storage.select('match', { round_id: roundId });
-        if (!matches) throw Error('This round has no match.');
-
-        for (const match of matches)
-            await this.adjustMatchChildGames(match, childCount);
-    }
-
-    /**
-     * Updates the ordering of participants in a round's matches.
-     *
-     * @param roundNumber The number of the round.
-     * @param matches The matches of the round.
-     * @param positions The new positions.
-     */
-    private async applyRoundOrdering(roundNumber: number, matches: Match[], positions: number[]): Promise<void> {
-        for (const match of matches) {
-            const updated = { ...match };
-            updated.opponent1 = helpers.findPosition(matches, positions.shift()!);
-
-            // The only rounds where we have a second ordered participant are first rounds of brackets (upper and lower).
-            if (roundNumber === 1)
-                updated.opponent2 = helpers.findPosition(matches, positions.shift()!);
-
-            if (!await this.storage.update('match', updated.id, updated))
-                throw Error('Could not update the match.');
-        }
-    }
-
-    /**
-     * Adds or deletes match games of a match based on a target child count.
-     *
-     * @param match The match of which child games need to be adjusted.
-     * @param targetChildCount The target child count.
-     */
-    private async adjustMatchChildGames(match: Match, targetChildCount: number): Promise<void> {
-        const games = await this.storage.select('match_game', { parent_id: match.id });
-        let childCount = games ? games.length : 0;
-
-        while (childCount < targetChildCount) {
-            const id = await this.storage.insert('match_game', {
-                number: childCount + 1,
-                stage_id: match.stage_id,
-                parent_id: match.id,
-                status: match.status,
-                opponent1: { id: null },
-                opponent2: { id: null },
-            });
-
-            if (id === -1)
-                throw Error('Could not adjust the match games when inserting.');
-
-            childCount++;
-        }
-
-        while (childCount > targetChildCount) {
-            const deleted = await this.storage.delete('match_game', {
-                parent_id: match.id,
-                number: childCount,
-            });
-
-            if (!deleted)
-                throw Error('Could not adjust the match games when deleting.');
-
-            childCount--;
-        }
-
-        if (!await this.storage.update('match', match.id, { ...match, child_count: targetChildCount }))
-            throw Error('Could not update the match.');
-    }
+    default:
+      return false;
+  }
 }
