@@ -37,7 +37,7 @@ module.exports = {
             'functions': 'always-multiline',
         }],
 
-        'jsdoc/require-jsdoc': ['error', { require: { 'MethodDefinition': true } }],
+        // 'jsdoc/require-jsdoc': ['error', { require: { 'MethodDefinition': true } }],
         'jsdoc/require-param-type': 0,
         'jsdoc/require-returns': 0,
         'jsdoc/require-returns-type': 0,
