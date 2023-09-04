@@ -1,23 +1,11 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
 import { Id } from "brackets-model";
-import { Model, Mongoose } from "mongoose";
-import { handleDelete } from "./delete";
-import { handleInsert } from "./insert";
-import { handleSelect } from "./select";
-import { handleUpdate } from "./update";
+import mongoose, { Model } from "mongoose";
+import Match, { TMatchSubData } from "./match";
 import Participant from "./participant";
 import Tournament from "./tournament";
-import {
-    TData,
-    TData<Tables.Group>,
-    TMatchData,
-    TData<Tables.Participant>,
-    TData<Tables.Round>,
-    TStageData,
-    TTournamentModel,
-    TTournamentSubPaths,
-import { TTournamentSubData } from "./types";
-} from "./types";
+import { TTournamentModel, TTournamentSubData } from "./types";
+import { handleUpdate } from "./update";
 
 enum Tables {
     Participant = "participant",
@@ -36,16 +24,16 @@ export default class MongooseForBrackets<
 {
     private tournament: Tournament<TournamentModel>;
     private participant: Participant<ParticipantModel>;
-    private match: Participant<MatchModel>;
+    private match: Match<MatchModel>;
 
     constructor(
         tournamentModel: TournamentModel,
         participantModel: ParticipantModel,
-        matchModel: MatchModel,
+        matchModel: MatchModel
     ) {
         this.tournament = new Tournament(tournamentModel);
         this.participant = new Participant(participantModel);
-        this.match = new Participant(matchModel);
+        this.match = new Match(matchModel);
     }
 
     insert<T extends keyof DataTypes>(
@@ -58,17 +46,17 @@ export default class MongooseForBrackets<
     ): Promise<boolean>;
     async insert<T extends keyof DataTypes>(
         table: T,
-        data: OmitId<DataTypes[T]> | OmitId<DataTypes[T]>[],
+        data: OmitId<DataTypes[T]> | OmitId<DataTypes[T]>[]
     ): Promise<Id | boolean> {
         switch (table) {
             case Tables.Participant:
                 if (Array.isArray(data)) {
                     return this.participant.insertMany(
-                        data as unknown as TData<Tables.Participant>[],
+                        data as unknown as DataTypes[Tables.Participant][]
                     );
                 } else {
                     return this.participant.insertOne(
-                        data as unknown as TData<Tables.Participant>,
+                        data as unknown as DataTypes[Tables.Participant]
                     );
                 }
             case Tables.Stage:
@@ -77,55 +65,35 @@ export default class MongooseForBrackets<
                 if (Array.isArray(data)) {
                     return this.tournament.insertMany(
                         table,
-                        data as unknown as TTournamentSubData[] 
+                        data as unknown as TTournamentSubData[]
                     );
                 } else {
                     return this.tournament.insertOne(
                         table,
-                        data as unknown as TTournamentSubData,
+                        data as unknown as TTournamentSubData
                     );
                 }
             case Tables.Match:
                 if (Array.isArray(data)) {
                     return this.match.insertMany(
-                        data as unknown as TData<Tables.Match>[],
+                        data as unknown as DataTypes[Tables.Match][]
                     );
                 } else {
                     return this.match.insertOne(
-                        data as unknown as TData<Tables.Match>,
+                        data as unknown as DataTypes[Tables.Match]
                     );
                 }
             case Tables.MatchGame:
-
-                const matchGameData = data as
-                    | OmitId<DataTypes["match_game"]>
-                    | OmitId<DataTypes["match_game"]>[];
-
                 if (Array.isArray(data)) {
-                    this.match.insertMany
-                    const promises = [];
-
-
-                    return Promise.all(promises)
-                        .then(() => true)
-                        .catch((err) => {
-                            console.error(err);
-                            return false;
-                        });
-                } else {
-                    const match = await this.match.findById(
-                        matchGameData.parent_id,
+                    return this.match.insertManySubdocs(
+                        table,
+                        data as unknown as TMatchSubData[]
                     );
-
-                    const matchGame = match!.games.create(matchGameData);
-                    match!.games.push(matchGame);
-                    return match!
-                        .save()
-                        .then(() => matchGame.id)
-                        .catch((err) => {
-                            console.error(err);
-                            return -1;
-                        });
+                } else {
+                    return this.match.insertOneSubdoc(
+                        table,
+                        data as unknown as TMatchSubData
+                    );
                 }
 
             default:
@@ -144,9 +112,30 @@ export default class MongooseForBrackets<
     ): Promise<DataTypes[T][] | null>;
     async select<T extends keyof DataTypes>(
         table: T,
-        filter?: Partial<DataTypes[T]> | Id,
+        filter?: Partial<DataTypes[T]> | Id
     ): Promise<DataTypes[T][] | DataTypes[T] | null> {
-        return handleSelect(this.client, table, filter);
+        switch (table) {
+            case Tables.Participant:
+                return this.participant.select(filter) as Promise<
+                    DataTypes[T][] | DataTypes[T] | null
+                >;
+            case Tables.Group:
+            case Tables.Round:
+            case Tables.Stage:
+                return this.tournament.select(table, filter) as Promise<
+                    DataTypes[T][] | DataTypes[T] | null
+                >;
+            case Tables.Match:
+                return this.match.select(filter) as Promise<
+                    DataTypes[T][] | DataTypes[T] | null
+                >;
+            case Tables.MatchGame:
+                return this.match.selectSubdocs(table, filter) as Promise<
+                    DataTypes[T][] | DataTypes[T] | null
+                >;
+            default:
+                return null;
+        }
     }
 
     update<T extends keyof DataTypes>(
@@ -162,7 +151,7 @@ export default class MongooseForBrackets<
     async update<T extends keyof DataTypes>(
         table: T,
         filter: Partial<DataTypes[T]> | Id,
-        data: Partial<DataTypes[T]> | DataTypes[T],
+        data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
         return handleUpdate(this.client, table, filter, data);
     }
@@ -174,7 +163,7 @@ export default class MongooseForBrackets<
     ): Promise<boolean>;
     async delete<T extends keyof DataTypes>(
         table: T,
-        filter?: Partial<DataTypes[T]>,
+        filter?: Partial<DataTypes[T]>
     ): Promise<boolean> {
         switch (table) {
             case "participant":
@@ -227,7 +216,7 @@ export default class MongooseForBrackets<
                                 },
                             },
                         ],
-                    },
+                    }
                 )
                     .exec()
                     .then(() => true)

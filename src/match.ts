@@ -1,4 +1,4 @@
-import { OmitId } from "brackets-manager";
+import { OmitId, DataTypes } from "brackets-manager";
 import { Id } from "brackets-model";
 import {
     Document,
@@ -8,14 +8,14 @@ import {
     ObjectId,
     Types,
 } from "mongoose";
-import { TData, TTournamentSubData, TTournamentSubPaths } from "./types";
+import { TData, TMatchSubData, TTournamentSubPaths, isId } from "./types";
 
 export type TMatchTables = "match_game";
 
 export enum MatchSubPaths {
     match_game = "games",
 }
-export type TMatchSubData = TData<keyof typeof MatchSubPaths>;
+export type TMatchSubData = DataTypes[keyof typeof MatchSubPaths];
 
 export type TMatchDocument = HydratedDocument<Document<ObjectId>> & {
     [K in keyof Record<MatchSubPaths, string>]: Types.DocumentArray<
@@ -30,7 +30,7 @@ export default class Match<M extends Model<any>> {
         this.model = model;
     }
 
-    async insertOne(data: OmitId<TData<"match">>): Promise<Id> {
+    async insertOne(data: OmitId<DataTypes["match"]>): Promise<Id> {
         try {
             const result = (await this.model.create(
                 data
@@ -52,9 +52,11 @@ export default class Match<M extends Model<any>> {
             for (const game of data) {
                 //TODO: could potentially sort and batch this but maybe overkill
                 //or just aggregate somehow
-                const match = await this.model.findById(game.parent_id) as TMatchDocument;
+                const match = (await this.model.findById(
+                    game.parent_id
+                )) as TMatchDocument;
                 match[path].push(game);
-                
+
                 await match.save();
             }
             return true;
@@ -67,17 +69,22 @@ export default class Match<M extends Model<any>> {
     async insertOneSubdoc(
         table: TMatchTables,
         data: TMatchSubData
-    ): Promise<Id | boolean> {
-        const tournament = this.model.findCurrent();
+    ): Promise<Id> {
         const path = MatchSubPaths[table];
 
         try {
-            tournament[path].create(data);
-            await tournament.save();
-            return true;
+            const match = (await this.model.findById(
+                data.parent_id
+            )) as TMatchDocument;
+
+            const game = match.games.create(data);
+            match[path].push(game);
+
+            await match.save();
+            return game._id?.toString() || -1;
         } catch (err) {
             console.error(err);
-            return false;
+            return -1;
         }
     }
 
@@ -85,7 +92,7 @@ export default class Match<M extends Model<any>> {
      *
      * @param data
      */
-    async insertMany(data: OmitId<TData<"match">>[]): Promise<boolean> {
+    async insertMany(data: OmitId<DataTypes["match"]>[]): Promise<boolean> {
         try {
             await this.model.insertMany(data);
             return true;
@@ -95,11 +102,36 @@ export default class Match<M extends Model<any>> {
         }
     }
 
+
+    async select(
+        filter?: Partial<DataTypes["match"]> | Id
+    ): Promise<DataTypes["match"] | DataTypes["match"][] | null> {
+        if (!filter) {
+            return this.model.find({}).exec() as unknown as Promise<
+                DataTypes["match"][]
+            >;
+        } else if (isId(filter)) {
+            return this.model.findById(filter).exec() as unknown as Promise<
+                DataTypes["match"]
+            >;
+        }
+
+        return (await this.model
+            .find(this.model.translateAliases(filter) as object)
+            .exec()) as unknown as Promise<DataTypes["match"][]>;
+    }
+
+    async selectSubdocs(
+        table: TMatchTables,
+        filter?: Partial<TMatchSubData> | Id
+    ): Promise<TMatchSubData | TMatchSubData[] | null> {
+    }
+
     /**
      *
      * @param filter
      */
-    async delete(filter?: Partial<TData<"match_game">>): Promise<boolean> {
+    async delete(filter?: Partial<DataTypes["match_game"]>): Promise<boolean> {
         try {
             if (!filter) await this.model.deleteMany({});
             if (filter?.id) await this.model.findByIdAndDelete(filter.id);

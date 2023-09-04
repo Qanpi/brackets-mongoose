@@ -1,10 +1,13 @@
 import { Id } from "brackets-model";
 import { filter as _filter, matches } from "lodash-es";
+import { ObjectId, Types } from "mongoose";
 import {
-    ObjectId,
-    Types
-} from "mongoose";
-import { TTournamentModel, TTournamentSubData, TournamentSubPaths, TTournamentTables } from "./types";
+    TTournamentModel,
+    TTournamentSubData,
+    TTournamentTables,
+    TournamentSubPaths,
+    isId,
+} from "./types";
 
 // function isStageData(data: Partial<TSubData>): data is TStageData {
 //     return true;
@@ -58,6 +61,27 @@ export default class Tournament<M extends TTournamentModel> {
             console.error(err);
             return false;
         }
+    }
+
+    async select(
+        table: TTournamentTables,
+        filter?: Partial<TTournamentSubData> | Id
+    ): Promise<TTournamentSubData | TTournamentSubData[] | null> {
+        const tournament = this.model.findCurrent();
+        const path = TournamentSubPaths[table];
+
+        if (filter === undefined)
+            return tournament[path] as unknown as Promise<TTournamentSubData[]>;
+        else if (isId(filter)) {
+            return tournament[path].id(
+                filter
+            ) as unknown as Promise<TTournamentSubData>;
+        }
+
+        return _filter(
+            tournament[path].toObject(),
+            this.model.translateSubAliases(table, filter)
+        ) as unknown as TTournamentSubData[];
     }
 
     async delete(

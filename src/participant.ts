@@ -1,4 +1,4 @@
-import { OmitId } from "brackets-manager";
+import { OmitId, DataTypes } from "brackets-manager";
 import { Id } from "brackets-model";
 import { Document, FilterQuery, Model, ObjectId } from "mongoose";
 import { TData } from "./types";
@@ -18,10 +18,10 @@ export default class Participant<M extends Model<any>> {
      *
      * @param data
      */
-    async insertOne(data: OmitId<TData<"participant">>): Promise<Id> {
+    async insertOne(data: OmitId<DataTypes["participant"]>): Promise<Id> {
         try {
             const result = (await this.model.create(
-                data,
+                data
             )) as Document<ObjectId>;
             return result._id?.toString() || -1;
         } catch (err) {
@@ -34,7 +34,7 @@ export default class Participant<M extends Model<any>> {
      *
      * @param data
      */
-    async insertMany(data: OmitId<TData<"participant">>[]): Promise<boolean> {
+    async insertMany(data: OmitId<DataTypes["participant"]>[]): Promise<boolean> {
         try {
             await this.model.insertMany(data);
             return true;
@@ -44,17 +44,36 @@ export default class Participant<M extends Model<any>> {
         }
     }
 
+    async select(
+        filter?: Partial<DataTypes["participant"]> | Id
+    ): Promise<DataTypes["participant"] | DataTypes["participant"][] | null> {
+        if (!filter) {
+            return this.model.find({}).exec() as unknown as Promise<
+                DataTypes["participant"][]
+            >;
+        } else if (typeof filter === "string") {
+            //TODO: custom type predicate for Id
+            return this.model.findById(filter).exec() as unknown as Promise<
+                DataTypes["participant"]
+            >;
+        }
+
+        return (await this.model
+            .find(this.model.translateAliases(filter) as object)
+            .exec()) as unknown as Promise<DataTypes["participant"][]>;
+    }
+
     /**
      *
      * @param filter
      */
-    async delete(filter?: Partial<TData<"participant">>): Promise<boolean> {
+    async delete(filter?: Partial<DataTypes["participant"]>): Promise<boolean> {
         try {
             if (!filter) await this.model.deleteMany({});
             if (filter?.id) await this.model.findByIdAndDelete(filter.id);
             else {
                 const f = this.model.translateAliases(
-                    filter,
+                    filter
                 ) as FilterQuery<any>;
 
                 await this.model.deleteMany({
@@ -67,5 +86,4 @@ export default class Participant<M extends Model<any>> {
             return false;
         }
     }
-
 }
