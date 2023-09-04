@@ -153,7 +153,19 @@ export default class MongooseForBrackets<
         filter: Partial<DataTypes[T]> | Id,
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
-        return handleUpdate(this.client, table, filter, data);
+        switch (table) {
+            case Tables.Participant:
+                return this.participant.update(filter);
+            case Tables.Group:
+            case Tables.Round:
+            case Tables.Stage:
+                return this.tournament.delete(table, filter);
+            case Tables.Match:
+                return this.match.delete(filter);
+            case Tables.MatchGame:
+            default:
+                return false;
+        }
     }
 
     delete<T extends keyof DataTypes>(table: T): Promise<boolean>;
@@ -166,35 +178,16 @@ export default class MongooseForBrackets<
         filter?: Partial<DataTypes[T]>
     ): Promise<boolean> {
         switch (table) {
-            case "participant":
+            case Tables.Participant:
                 return this.participant.delete(filter);
-            case "group":
-                return this.tournament.delete("groups", filter);
-            case "stage":
-                return this.tournament.delete("stages", filter);
-            case "round":
-                return this.tournament.delete("rounds", filter);
-            case "match":
-                const Match = mongoose.model("Match");
-                if (!filter) {
-                    return Match.deleteMany({})
-                        .then(() => true)
-                        .catch((err) => {
-                            console.error(err);
-                            return false;
-                        });
-                }
-                return Match.deleteMany({
-                    ...Match.translateAliases(filter),
-                    _id: filter.id,
-                    id: undefined,
-                })
-                    .then(() => true)
-                    .catch((err) => {
-                        console.error(err);
-                        return false;
-                    });
-            case "match_game":
+            case Tables.Group:
+            case Tables.Round:
+            case Tables.Stage:
+                return this.tournament.delete(table, filter);
+            case Tables.Match:
+                return this.match.delete(filter);
+            case Tables.MatchGame:
+                return false;
                 if (!filter) {
                     return Match.updateMany({}, { $set: { games: undefined } })
                         .exec()
