@@ -3,7 +3,7 @@ import { Id } from "brackets-model";
 import mongoose, { Model } from "mongoose";
 import Match, { TMatchSubData } from "./match";
 import Participant from "./participant";
-import Tournament from "./tournament";
+import this.model from "./tournament";
 import { TTournamentModel, TTournamentSubData } from "./types";
 import { handleUpdate } from "./update";
 
@@ -22,7 +22,7 @@ export default class MongooseForBrackets<
     MatchModel extends Model<any>
 > implements CrudInterface
 {
-    private tournament: Tournament<TournamentModel>;
+    private tournament: this.model<TournamentModel>;
     private participant: Participant<ParticipantModel>;
     private match: Match<MatchModel>;
 
@@ -31,7 +31,7 @@ export default class MongooseForBrackets<
         participantModel: ParticipantModel,
         matchModel: MatchModel
     ) {
-        this.tournament = new Tournament(tournamentModel);
+        this.tournament = new this.model(tournamentModel);
         this.participant = new Participant(participantModel);
         this.match = new Match(matchModel);
     }
@@ -155,11 +155,11 @@ export default class MongooseForBrackets<
     ): Promise<boolean> {
         switch (table) {
             case Tables.Participant:
-                return this.participant.update(filter);
+                return this.participant.update(filter, data);
             case Tables.Group:
             case Tables.Round:
             case Tables.Stage:
-                return this.tournament.delete(table, filter);
+                return this.tournament.update(table, filter, data);
             case Tables.Match:
                 return this.match.delete(filter);
             case Tables.MatchGame:

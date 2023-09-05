@@ -23,7 +23,7 @@ export function isId(id: any | Id): id is Id {
 }
 
 export type TTournamentModel = Model<any> & {
-    findCurrent: () => TTournamentDocument;
+    findCurrent: () => Promise<TTournamentDocument>;
     translateSubAliases: (
         table: keyof typeof TournamentSubPaths,
         data: Partial<TTournamentSubData>

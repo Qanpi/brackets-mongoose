@@ -1,5 +1,5 @@
 import { Id } from "brackets-model";
-import { filter as _filter, matches } from "lodash-es";
+import { filter as _filter, isMatch, matches } from "lodash-es";
 import { ObjectId, Types } from "mongoose";
 import {
     TTournamentModel,
@@ -32,7 +32,7 @@ export default class Tournament<M extends TTournamentModel> {
         table: TTournamentTables,
         data: TTournamentSubData[]
     ): Promise<Id | boolean> {
-        const tournament = this.model.findCurrent();
+        const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
         try {
@@ -50,7 +50,7 @@ export default class Tournament<M extends TTournamentModel> {
         table: TTournamentTables,
         data: TTournamentSubData
     ): Promise<Id | boolean> {
-        const tournament = this.model.findCurrent();
+        const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
         try {
@@ -61,6 +61,37 @@ export default class Tournament<M extends TTournamentModel> {
             console.error(err);
             return false;
         }
+    }
+
+    async update(
+        table: TTournamentTables,
+        filter: Partial<TTournamentSubData> | Id,
+        data: Partial<TTournamentSubData> | TTournamentSubData
+    ): Promise<boolean> {
+        const tournament = await this.model.findCurrent();
+        const path = TournamentSubPaths[table];
+
+        tournament[path].forEach((d: Types.ArraySubdocument<ObjectId>) => {
+            if (isMatch(d, this.model.translateSubAliases(table, filter)))
+                d.set(this.model.translateSubAliases(table, data));
+        });
+
+        const d = this.model.translateAliases(data) as object;
+
+        if (isId(filter)) {
+            await this.model.findByIdAndUpdate(filter, d);
+            return true;
+        }
+
+        const f = this.model.translateAliases(filter) as object;
+        return this.model
+            .updateMany(f, d)
+            .exec()
+            .then(() => true)
+            .catch((err) => {
+                console.error(err);
+                return false;
+            });
     }
 
     async select(

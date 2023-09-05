@@ -1,7 +1,7 @@
 import { OmitId, DataTypes } from "brackets-manager";
 import { Id } from "brackets-model";
 import { Document, FilterQuery, Model, ObjectId } from "mongoose";
-import { TData } from "./types";
+import { TData, isId } from "./types";
 
 export default class Participant<M extends Model<any>> {
     private model: M;
@@ -34,7 +34,9 @@ export default class Participant<M extends Model<any>> {
      *
      * @param data
      */
-    async insertMany(data: OmitId<DataTypes["participant"]>[]): Promise<boolean> {
+    async insertMany(
+        data: OmitId<DataTypes["participant"]>[]
+    ): Promise<boolean> {
         try {
             await this.model.insertMany(data);
             return true;
@@ -63,6 +65,26 @@ export default class Participant<M extends Model<any>> {
             .exec()) as unknown as Promise<DataTypes["participant"][]>;
     }
 
+    async update(
+        filter: Partial<DataTypes["participant"]> | Id,
+        data: Partial<DataTypes["participant"]> | DataTypes["participant"]
+    ): Promise<boolean> {
+        const d = this.model.translateAliases(data) as object;
+
+        if (isId(filter)) {
+            await this.model.findByIdAndUpdate(filter, d);
+            return true;
+        }
+
+        const f = this.model.translateAliases(filter) as object;
+        return this.model.updateMany(f, d)
+            .exec()
+            .then(() => true)
+            .catch((err) => {
+                console.error(err);
+                return false;
+            });
+    }
     /**
      *
      * @param filter
