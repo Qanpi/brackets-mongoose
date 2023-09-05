@@ -40,7 +40,7 @@
     "scripts": {
         "lint": "eslint '**/*.{js,ts}' --fix",
         "test": "mocha 'test/**/*.spec.js'",
-        "db": "json-server --watch db.json",
+        "db": "start \"\" \"C:\\Program Files\\Azure Cosmos DB Emulator\\Microsoft.Azure.Cosmos.Emulator.exe\" /EnableMongoDbEndpoint=4.0",
         "start": "tsc --watch",
         "build": "tsc",
         "prepare": "npm run build",
