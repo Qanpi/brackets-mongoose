@@ -1,7 +1,7 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
 import { Id } from "brackets-model";
 import { Model } from "mongoose";
-import Match, { TMatchSubData } from "./match";
+import Match from "./match";
 import Participant from "./participant";
 import Tournament from "./tournament";
 import { TTournamentModel, TTournamentSubData } from "./types";

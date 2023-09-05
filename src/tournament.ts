@@ -71,27 +71,19 @@ export default class Tournament<M extends TTournamentModel> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
-        tournament[path].forEach((d: Types.ArraySubdocument<ObjectId>) => {
-            if (isMatch(d, this.model.translateSubAliases(table, filter)))
-                d.set(this.model.translateSubAliases(table, data));
-        });
-
-        const d = this.model.translateAliases(data) as object;
+        const d = this.model.translateSubAliases(table, data);
 
         if (isId(filter)) {
             await this.model.findByIdAndUpdate(filter, d);
             return true;
         }
 
-        const f = this.model.translateAliases(filter) as object;
-        return this.model
-            .updateMany(f, d)
-            .exec()
-            .then(() => true)
-            .catch((err) => {
-                console.error(err);
-                return false;
-            });
+        const f = this.model.translateSubAliases(table, filter);
+        tournament[path].forEach((d: Types.ArraySubdocument<ObjectId>) => {
+            if (isMatch(d, f))
+                tournament.set();
+        });
+
     }
 
     async select(
