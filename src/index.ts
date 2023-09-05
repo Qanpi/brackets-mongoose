@@ -1,9 +1,9 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
 import { Id } from "brackets-model";
 import { Model, Mongoose } from "mongoose";
-import Match from "./matchCRUD";
-import Participant from "./participantCRUD";
-import Tournament, { TTournamentModel } from "./tournamentCRUD";
+import Match from "./match";
+import Participant from "./participant";
+import Tournament, { TTournamentModel } from "./tournament";
 
 enum Tables {
     Participant = "participant",

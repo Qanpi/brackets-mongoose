@@ -8,6 +8,4 @@
         "sourceMap": true,
         "outDir": "dist/",
     },
-    // "exclude": ["copa/node_modules/"]
-    "include": ["src", "copa/server/models/"]
 }
