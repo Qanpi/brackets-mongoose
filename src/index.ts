@@ -1,11 +1,10 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
 import { Id } from "brackets-model";
-import mongoose, { Model } from "mongoose";
+import { Model } from "mongoose";
 import Match, { TMatchSubData } from "./match";
 import Participant from "./participant";
-import this.model from "./tournament";
+import Tournament from "./tournament";
 import { TTournamentModel, TTournamentSubData } from "./types";
-import { handleUpdate } from "./update";
 
 enum Tables {
     Participant = "participant",
@@ -22,16 +21,16 @@ export default class MongooseForBrackets<
     MatchModel extends Model<any>
 > implements CrudInterface
 {
-    private tournament: this.model<TournamentModel>;
-    private participant: Participant<ParticipantModel>;
-    private match: Match<MatchModel>;
+    private tournament: Tournament<TournamentModel>;
+    private participant: Participant<ParticipantModel, Tables.Participant>;
+    private match: Match<MatchModel, Tables.Match, Tables.MatchGame>;
 
     constructor(
         tournamentModel: TournamentModel,
         participantModel: ParticipantModel,
         matchModel: MatchModel
     ) {
-        this.tournament = new this.model(tournamentModel);
+        this.tournament = new Tournament(tournamentModel);
         this.participant = new Participant(participantModel);
         this.match = new Match(matchModel);
     }
@@ -87,12 +86,12 @@ export default class MongooseForBrackets<
                 if (Array.isArray(data)) {
                     return this.match.insertManySubdocs(
                         table,
-                        data as unknown as TMatchSubData[]
+                        data as unknown as DataTypes[Tables.MatchGame][]
                     );
                 } else {
                     return this.match.insertOneSubdoc(
                         table,
-                        data as unknown as TMatchSubData
+                        data as unknown as DataTypes[Tables.MatchGame]
                     );
                 }
 
@@ -161,8 +160,9 @@ export default class MongooseForBrackets<
             case Tables.Stage:
                 return this.tournament.update(table, filter, data);
             case Tables.Match:
-                return this.match.delete(filter);
+                return this.match.update(filter, data);
             case Tables.MatchGame:
+                return this.match.updateSubdocs(table, filter, data);
             default:
                 return false;
         }
@@ -187,36 +187,36 @@ export default class MongooseForBrackets<
             case Tables.Match:
                 return this.match.delete(filter);
             case Tables.MatchGame:
-                return false;
-                if (!filter) {
-                    return Match.updateMany({}, { $set: { games: undefined } })
-                        .exec()
-                        .then(() => true)
-                        .catch((err) => {
-                            console.error(err);
-                            return false;
-                        });
-                }
+                return this.match.deleteSubdocs(table, filter);
+                // if (!filter) {
+                //     return Match.updateMany({}, { $set: { games: undefined } })
+                //         .exec()
+                //         .then(() => true)
+                //         .catch((err) => {
+                //             console.error(err);
+                //             return false;
+                //         });
+                // }
 
-                return Match.updateMany(
-                    {},
-                    { $set: { "games.$[elem]": undefined } },
-                    {
-                        arrayFilters: [
-                            {
-                                elem: {
-                                    filter,
-                                },
-                            },
-                        ],
-                    }
-                )
-                    .exec()
-                    .then(() => true)
-                    .catch((err) => {
-                        console.error(err);
-                        return false;
-                    });
+                // return Match.updateMany(
+                //     {},
+                //     { $set: { "games.$[elem]": undefined } },
+                //     {
+                //         arrayFilters: [
+                //             {
+                //                 elem: {
+                //                     filter,
+                //                 },
+                //             },
+                //         ],
+                //     }
+                // )
+                //     .exec()
+                //     .then(() => true)
+                //     .catch((err) => {
+                //         console.error(err);
+                //         return false;
+                //     });
 
             default:
                 return false;

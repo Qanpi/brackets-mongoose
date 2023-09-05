@@ -1,21 +1,13 @@
-import { OmitId, DataTypes } from "brackets-manager";
+import { DataTypes } from "brackets-manager";
 import { Id } from "brackets-model";
-import {
-    Document,
-    FilterQuery,
-    HydratedDocument,
-    Model,
-    ObjectId,
-    Types,
-} from "mongoose";
-import { TData, TMatchSubData, TTournamentSubPaths, isId } from "./types";
-
-export type TMatchTables = "match_game";
+import { Document, HydratedDocument, Model, ObjectId, Types } from "mongoose";
+import Participant from "./participant";
 
 export enum MatchSubPaths {
     match_game = "games",
 }
-export type TMatchSubData = DataTypes[keyof typeof MatchSubPaths];
+
+export type TMatchTables = keyof typeof MatchSubPaths;
 
 export type TMatchDocument = HydratedDocument<Document<ObjectId>> & {
     [K in keyof Record<MatchSubPaths, string>]: Types.DocumentArray<
@@ -23,28 +15,18 @@ export type TMatchDocument = HydratedDocument<Document<ObjectId>> & {
     >;
 };
 
-export default class Match<M extends Model<any>> {
-    private model: M;
-
+export default class Match<
+    M extends Model<any>,
+    T extends keyof DataTypes,
+    S extends TMatchTables
+> extends Participant<M, T> {
     constructor(model: M) {
-        this.model = model;
-    }
-
-    async insertOne(data: OmitId<DataTypes["match"]>): Promise<Id> {
-        try {
-            const result = (await this.model.create(
-                data
-            )) as Document<ObjectId>;
-            return result._id?.toString() || -1;
-        } catch (err) {
-            console.error(err);
-            return -1;
-        }
+        super(model);
     }
 
     async insertManySubdocs(
         table: TMatchTables,
-        data: TMatchSubData[]
+        data: DataTypes[S][]
     ): Promise<Id | boolean> {
         const path = MatchSubPaths[table];
 
@@ -68,7 +50,7 @@ export default class Match<M extends Model<any>> {
 
     async insertOneSubdoc(
         table: TMatchTables,
-        data: TMatchSubData
+        data: DataTypes[S]
     ): Promise<Id> {
         const path = MatchSubPaths[table];
 
@@ -88,66 +70,25 @@ export default class Match<M extends Model<any>> {
         }
     }
 
-    /**
-     *
-     * @param data
-     */
-    async insertMany(data: OmitId<DataTypes["match"]>[]): Promise<boolean> {
-        try {
-            await this.model.insertMany(data);
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
-    }
-
-
-    async select(
-        filter?: Partial<DataTypes["match"]> | Id
-    ): Promise<DataTypes["match"] | DataTypes["match"][] | null> {
-        if (!filter) {
-            return this.model.find({}).exec() as unknown as Promise<
-                DataTypes["match"][]
-            >;
-        } else if (isId(filter)) {
-            return this.model.findById(filter).exec() as unknown as Promise<
-                DataTypes["match"]
-            >;
-        }
-
-        return (await this.model
-            .find(this.model.translateAliases(filter) as object)
-            .exec()) as unknown as Promise<DataTypes["match"][]>;
-    }
-
     async selectSubdocs(
         table: TMatchTables,
-        filter?: Partial<TMatchSubData> | Id
-    ): Promise<TMatchSubData | TMatchSubData[] | null> {
+        filter?: Partial<DataTypes[S]> | Id
+    ): Promise<DataTypes[S] | DataTypes[S][] | null> {
+        return null;
     }
 
-    /**
-     *
-     * @param filter
-     */
-    async delete(filter?: Partial<DataTypes["match_game"]>): Promise<boolean> {
-        try {
-            if (!filter) await this.model.deleteMany({});
-            if (filter?.id) await this.model.findByIdAndDelete(filter.id);
-            else {
-                const f = this.model.translateAliases(
-                    filter
-                ) as FilterQuery<any>;
+    async updateSubdocs(
+        table: TMatchTables,
+        filter: Partial<DataTypes[S]> | Id,
+        data: Partial<DataTypes[S]> | DataTypes[T]
+    ): Promise<boolean> {
+        return false;
+    }
 
-                await this.model.deleteMany({
-                    ...f,
-                });
-            }
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
+    async deleteSubdocs(
+        table: TMatchTables,
+        filter?: Partial<DataTypes[S]>
+    ): Promise<boolean> {
+        return false;
     }
 }

@@ -3,8 +3,11 @@ import { Id } from "brackets-model";
 import { Document, FilterQuery, Model, ObjectId } from "mongoose";
 import { TData, isId } from "./types";
 
-export default class Participant<M extends Model<any>> {
-    private model: M;
+export default class Participant<
+    M extends Model<any>,
+    T extends keyof DataTypes,
+> {
+    protected model: M;
 
     /**
      *
@@ -18,7 +21,7 @@ export default class Participant<M extends Model<any>> {
      *
      * @param data
      */
-    async insertOne(data: OmitId<DataTypes["participant"]>): Promise<Id> {
+    async insertOne(data: OmitId<DataTypes[T]>): Promise<Id> {
         try {
             const result = (await this.model.create(
                 data
@@ -34,9 +37,7 @@ export default class Participant<M extends Model<any>> {
      *
      * @param data
      */
-    async insertMany(
-        data: OmitId<DataTypes["participant"]>[]
-    ): Promise<boolean> {
+    async insertMany(data: OmitId<DataTypes[T]>[]): Promise<boolean> {
         try {
             await this.model.insertMany(data);
             return true;
@@ -47,27 +48,27 @@ export default class Participant<M extends Model<any>> {
     }
 
     async select(
-        filter?: Partial<DataTypes["participant"]> | Id
-    ): Promise<DataTypes["participant"] | DataTypes["participant"][] | null> {
+        filter?: Partial<DataTypes[T]> | Id
+    ): Promise<DataTypes[T] | DataTypes[T][] | null> {
         if (!filter) {
             return this.model.find({}).exec() as unknown as Promise<
-                DataTypes["participant"][]
+                DataTypes[T][]
             >;
-        } else if (typeof filter === "string") {
+        } else if (isId(filter)) {
             //TODO: custom type predicate for Id
             return this.model.findById(filter).exec() as unknown as Promise<
-                DataTypes["participant"]
+                DataTypes[T]
             >;
         }
 
         return (await this.model
             .find(this.model.translateAliases(filter) as object)
-            .exec()) as unknown as Promise<DataTypes["participant"][]>;
+            .exec()) as unknown as Promise<DataTypes[T][]>;
     }
 
     async update(
-        filter: Partial<DataTypes["participant"]> | Id,
-        data: Partial<DataTypes["participant"]> | DataTypes["participant"]
+        filter: Partial<DataTypes[T]> | Id,
+        data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
         const d = this.model.translateAliases(data) as object;
 
@@ -77,19 +78,14 @@ export default class Participant<M extends Model<any>> {
         }
 
         const f = this.model.translateAliases(filter) as object;
-        return this.model.updateMany(f, d)
-            .exec()
-            .then(() => true)
-            .catch((err) => {
-                console.error(err);
-                return false;
-            });
+        await this.model.updateMany(f, d);
+        return true;
     }
     /**
      *
      * @param filter
      */
-    async delete(filter?: Partial<DataTypes["participant"]>): Promise<boolean> {
+    async delete(filter?: Partial<DataTypes[T]>): Promise<boolean> {
         try {
             if (!filter) await this.model.deleteMany({});
             if (filter?.id) await this.model.findByIdAndDelete(filter.id);
