@@ -2,23 +2,17 @@ const chai = require("chai");
 chai.use(require("chai-as-promised"));
 
 const assert = chai.assert;
-const { BracketsManager } = require("brackets-manager");
-const { JsonDatabase } = require("brackets-json-db");
-
-const { default: mongoose } = require("mongoose");
-const MongooseForBrackets = require("../dist/index").default;
-
-// const storage = new JsonDatabase();
-const storage = new MongooseForBrackets(mongoose);
-const manager = new BracketsManager(storage);
+// const global.storage = new JsonDatabase();
+// const storage = new MongooseForBrackets(mongoose);
+// const global.manager = new BracketsManager(storage);
 
 describe("Get child games", () => {
     beforeEach(() => {
-        storage.reset();
+        global.storage.reset();
     });
 
-    it("should get child games of a list of matches", async () => {
-        await manager.create.stage({
+    it.only("should get child games of a list of matches", async () => {
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "single_elimination",
@@ -26,8 +20,8 @@ describe("Get child games", () => {
             settings: { matchesChildCount: 2 },
         });
 
-        const matches = await storage.select("match", { round_id: 0 });
-        const games = await manager.get.matchGames(matches);
+        const matches = await global.storage.select("match", { round_id: 0 });
+        const games = await global.manager.get.matchGames(matches);
 
         assert.strictEqual(matches.length, 2);
         assert.strictEqual(games.length, 4);
@@ -35,7 +29,7 @@ describe("Get child games", () => {
     });
 
     it("should get child games of a list of matches with some which do not have child games", async () => {
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "single_elimination",
@@ -43,10 +37,10 @@ describe("Get child games", () => {
             settings: { matchesChildCount: 2 },
         });
 
-        await manager.update.matchChildCount("match", 1, 0); // Remove child games from match id 1.
+        await global.manager.update.matchChildCount("match", 1, 0); // Remove child games from match id 1.
 
-        const matches = await storage.select("match", { round_id: 0 });
-        const games = await manager.get.matchGames(matches);
+        const matches = await global.storage.select("match", { round_id: 0 });
+        const games = await global.manager.get.matchGames(matches);
 
         assert.strictEqual(matches.length, 2);
         assert.strictEqual(games.length, 2); // Only two child games.
@@ -55,11 +49,11 @@ describe("Get child games", () => {
 
 describe("Get final standings", () => {
     beforeEach(() => {
-        storage.reset();
+        global.storage.reset();
     });
 
     it("should get the final standings for a single elimination stage with consolation final", async () => {
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "single_elimination",
@@ -77,7 +71,7 @@ describe("Get final standings", () => {
         });
 
         for (let i = 0; i < 8; i++) {
-            await manager.update.match({
+            await global.manager.update.match({
                 id: i,
                 ...(i % 2 === 0
                     ? { opponent1: { result: "win" } }
@@ -85,7 +79,7 @@ describe("Get final standings", () => {
             });
         }
 
-        const finalStandings = await manager.get.finalStandings(0);
+        const finalStandings = await global.manager.get.finalStandings(0);
 
         assert.deepEqual(finalStandings, [
             { id: 0, name: "Team 1", rank: 1 },
@@ -103,7 +97,7 @@ describe("Get final standings", () => {
     });
 
     it("should get the final standings for a single elimination stage without consolation final", async () => {
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "single_elimination",
@@ -121,7 +115,7 @@ describe("Get final standings", () => {
         });
 
         for (let i = 0; i < 7; i++) {
-            await manager.update.match({
+            await global.manager.update.match({
                 id: i,
                 ...(i % 2 === 0
                     ? { opponent1: { result: "win" } }
@@ -129,7 +123,7 @@ describe("Get final standings", () => {
             });
         }
 
-        const finalStandings = await manager.get.finalStandings(0);
+        const finalStandings = await global.manager.get.finalStandings(0);
 
         assert.deepEqual(finalStandings, [
             { id: 0, name: "Team 1", rank: 1 },
@@ -147,7 +141,7 @@ describe("Get final standings", () => {
     });
 
     it("should get the final standings for a double elimination stage with a grand final", async () => {
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "double_elimination",
@@ -165,7 +159,7 @@ describe("Get final standings", () => {
         });
 
         for (let i = 0; i < 15; i++) {
-            await manager.update.match({
+            await global.manager.update.match({
                 id: i,
                 ...(i % 2 === 0
                     ? { opponent1: { result: "win" } }
@@ -173,7 +167,7 @@ describe("Get final standings", () => {
             });
         }
 
-        const finalStandings = await manager.get.finalStandings(0);
+        const finalStandings = await global.manager.get.finalStandings(0);
 
         assert.deepEqual(finalStandings, [
             { id: 0, name: "Team 1", rank: 1 },
@@ -188,7 +182,7 @@ describe("Get final standings", () => {
     });
 
     it("should get the final standings for a double elimination stage without a grand final", async () => {
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "double_elimination",
@@ -206,7 +200,7 @@ describe("Get final standings", () => {
         });
 
         for (let i = 0; i < 13; i++) {
-            await manager.update.match({
+            await global.manager.update.match({
                 id: i,
                 // The parity is reversed here, just to have different results.
                 ...(i % 2 === 1
@@ -215,7 +209,7 @@ describe("Get final standings", () => {
             });
         }
 
-        const finalStandings = await manager.get.finalStandings(0);
+        const finalStandings = await global.manager.get.finalStandings(0);
 
         assert.deepEqual(finalStandings, [
             { id: 6, name: "Team 7", rank: 1 },
@@ -232,9 +226,9 @@ describe("Get final standings", () => {
 
 describe("Get seeding", () => {
     it("should get the seeding of a round-robin stage", async () => {
-        storage.reset();
+        global.storage.reset();
 
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "round_robin",
@@ -245,16 +239,16 @@ describe("Get seeding", () => {
             },
         });
 
-        const seeding = await manager.get.seeding(0);
+        const seeding = await global.manager.get.seeding(0);
         assert.strictEqual(seeding.length, 32);
         assert.strictEqual(seeding[0].position, 1);
         assert.strictEqual(seeding[1].position, 2);
     });
 
     it("should get the seeding of a round-robin stage with BYEs", async () => {
-        storage.reset();
+        global.storage.reset();
 
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "round_robin",
@@ -265,14 +259,14 @@ describe("Get seeding", () => {
             seeding: ["Team 1", null, null, null, null, null, null, null],
         });
 
-        const seeding = await manager.get.seeding(0);
+        const seeding = await global.manager.get.seeding(0);
         assert.strictEqual(seeding.length, 8);
     });
 
     it("should get the seeding of a round-robin stage with BYEs after update", async () => {
-        storage.reset();
+        global.storage.reset();
 
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "round_robin",
@@ -282,7 +276,7 @@ describe("Get seeding", () => {
             },
         });
 
-        await manager.update.seeding(0, [
+        await global.manager.update.seeding(0, [
             "Team 1",
             null,
             null,
@@ -293,30 +287,30 @@ describe("Get seeding", () => {
             null,
         ]);
 
-        const seeding = await manager.get.seeding(0);
+        const seeding = await global.manager.get.seeding(0);
         assert.strictEqual(seeding.length, 8);
     });
 
     it("should get the seeding of a single elimination stage", async () => {
-        storage.reset();
+        global.storage.reset();
 
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "single_elimination",
             settings: { size: 16 },
         });
 
-        const seeding = await manager.get.seeding(0);
+        const seeding = await global.manager.get.seeding(0);
         assert.strictEqual(seeding.length, 16);
         assert.strictEqual(seeding[0].position, 1);
         assert.strictEqual(seeding[1].position, 2);
     });
 
     it("should get the seeding with BYEs", async () => {
-        storage.reset();
+        global.storage.reset();
 
-        await manager.create.stage({
+        await global.manager.create.stage({
             name: "Example",
             tournamentId: 0,
             type: "single_elimination",
@@ -335,7 +329,7 @@ describe("Get seeding", () => {
             },
         });
 
-        const seeding = await manager.get.seeding(0);
+        const seeding = await global.manager.get.seeding(0);
         assert.strictEqual(seeding.length, 8);
         assert.deepStrictEqual(seeding, [
             { id: 0, position: 1 },
