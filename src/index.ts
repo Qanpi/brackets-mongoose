@@ -1,6 +1,6 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
 import { Id } from "brackets-model";
-import { Model } from "mongoose";
+import { Model, Mongoose } from "mongoose";
 import Match from "./match";
 import Participant from "./participant";
 import Tournament, { TTournamentModel } from "./tournament";
@@ -14,24 +14,17 @@ enum Tables {
     MatchGame = "match_game",
 }
 
-export default class MongooseForBrackets<
-    TournamentModel extends TTournamentModel,
-    ParticipantModel extends Model<any>,
-    MatchModel extends Model<any>
-> implements CrudInterface
-{
-    private tournament: Tournament<TournamentModel>;
-    private participant: Participant<ParticipantModel, Tables.Participant>;
-    private match: Match<MatchModel, Tables.Match, Tables.MatchGame>;
+export default class MongooseForBrackets implements CrudInterface {
+    private tournament: Tournament<TTournamentModel>;
+    private participant: Participant<Model<any>, Tables.Participant>;
+    private match: Match<Model<any>, Tables.Match, Tables.MatchGame>;
 
-    constructor(
-        tournamentModel: TournamentModel,
-        participantModel: ParticipantModel,
-        matchModel: MatchModel
-    ) {
-        this.tournament = new Tournament(tournamentModel);
-        this.participant = new Participant(participantModel);
-        this.match = new Match(matchModel);
+    constructor(mongoose: Mongoose) {
+        this.tournament = new Tournament(
+            mongoose.model("Tournament") as TTournamentModel
+        );
+        this.participant = new Participant(mongoose.model("Participant"));
+        this.match = new Match(mongoose.model("Match"));
     }
 
     insert<T extends keyof DataTypes>(
@@ -226,5 +219,9 @@ export default class MongooseForBrackets<
             default:
                 return false;
         }
+    }
+
+    reset(): void {
+        console.log("reset");
     }
 }

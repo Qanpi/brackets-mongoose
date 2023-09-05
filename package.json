@@ -12,6 +12,7 @@
     },
     "dependencies": {
         "brackets-model": "^1.5.0",
+        "dotenv": "^16.3.1",
         "lodash-es": "^4.17.21",
         "mongodb": "^6.0.0",
         "mongoose": "^7.5.0",

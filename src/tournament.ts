@@ -1,6 +1,6 @@
 import { DataTypes } from "brackets-manager";
 import { Id } from "brackets-model";
-import { filter as _filter, isMatch, matches } from "lodash-es";
+import { filter as _filter, isMatch, matches } from "lodash";
 import { Document, HydratedDocument, Model, ObjectId, Types } from "mongoose";
 import {
     isId,
