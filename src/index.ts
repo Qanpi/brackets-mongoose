@@ -3,8 +3,7 @@ import { Id } from "brackets-model";
 import { Model } from "mongoose";
 import Match from "./match";
 import Participant from "./participant";
-import Tournament from "./tournament";
-import { TTournamentModel, TTournamentSubData } from "./types";
+import Tournament, { TTournamentModel } from "./tournament";
 
 enum Tables {
     Participant = "participant",
@@ -64,12 +63,18 @@ export default class MongooseForBrackets<
                 if (Array.isArray(data)) {
                     return this.tournament.insertMany(
                         table,
-                        data as unknown as TTournamentSubData[]
+                        data as unknown as DataTypes[
+                            | Tables.Stage
+                            | Tables.Group
+                            | Tables.Round][]
                     );
                 } else {
                     return this.tournament.insertOne(
                         table,
-                        data as unknown as TTournamentSubData
+                        data as unknown as DataTypes[
+                            | Tables.Stage
+                            | Tables.Group
+                            | Tables.Round]
                     );
                 }
             case Tables.Match:
@@ -188,35 +193,35 @@ export default class MongooseForBrackets<
                 return this.match.delete(filter);
             case Tables.MatchGame:
                 return this.match.deleteSubdocs(table, filter);
-                // if (!filter) {
-                //     return Match.updateMany({}, { $set: { games: undefined } })
-                //         .exec()
-                //         .then(() => true)
-                //         .catch((err) => {
-                //             console.error(err);
-                //             return false;
-                //         });
-                // }
+            // if (!filter) {
+            //     return Match.updateMany({}, { $set: { games: undefined } })
+            //         .exec()
+            //         .then(() => true)
+            //         .catch((err) => {
+            //             console.error(err);
+            //             return false;
+            //         });
+            // }
 
-                // return Match.updateMany(
-                //     {},
-                //     { $set: { "games.$[elem]": undefined } },
-                //     {
-                //         arrayFilters: [
-                //             {
-                //                 elem: {
-                //                     filter,
-                //                 },
-                //             },
-                //         ],
-                //     }
-                // )
-                //     .exec()
-                //     .then(() => true)
-                //     .catch((err) => {
-                //         console.error(err);
-                //         return false;
-                //     });
+            // return Match.updateMany(
+            //     {},
+            //     { $set: { "games.$[elem]": undefined } },
+            //     {
+            //         arrayFilters: [
+            //             {
+            //                 elem: {
+            //                     filter,
+            //                 },
+            //             },
+            //         ],
+            //     }
+            // )
+            //     .exec()
+            //     .then(() => true)
+            //     .catch((err) => {
+            //         console.error(err);
+            //         return false;
+            //     });
 
             default:
                 return false;

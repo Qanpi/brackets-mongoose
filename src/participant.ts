@@ -1,7 +1,7 @@
-import { OmitId, DataTypes } from "brackets-manager";
+import { DataTypes, OmitId } from "brackets-manager";
 import { Id } from "brackets-model";
 import { Document, FilterQuery, Model, ObjectId } from "mongoose";
-import { TData, isId } from "./types";
+import { isId } from "./types";
 
 export default class Participant<
     M extends Model<any>,
@@ -24,7 +24,7 @@ export default class Participant<
     async insertOne(data: OmitId<DataTypes[T]>): Promise<Id> {
         try {
             const result = (await this.model.create(
-                data
+                data,
             )) as Document<ObjectId>;
             return result._id?.toString() || -1;
         } catch (err) {
@@ -48,7 +48,7 @@ export default class Participant<
     }
 
     async select(
-        filter?: Partial<DataTypes[T]> | Id
+        filter?: Partial<DataTypes[T]> | Id,
     ): Promise<DataTypes[T] | DataTypes[T][] | null> {
         if (!filter) {
             return this.model.find({}).exec() as unknown as Promise<
@@ -68,7 +68,7 @@ export default class Participant<
 
     async update(
         filter: Partial<DataTypes[T]> | Id,
-        data: Partial<DataTypes[T]> | DataTypes[T]
+        data: Partial<DataTypes[T]> | DataTypes[T],
     ): Promise<boolean> {
         const d = this.model.translateAliases(data) as object;
 
@@ -91,7 +91,7 @@ export default class Participant<
             if (filter?.id) await this.model.findByIdAndDelete(filter.id);
             else {
                 const f = this.model.translateAliases(
-                    filter
+                    filter,
                 ) as FilterQuery<any>;
 
                 await this.model.deleteMany({
