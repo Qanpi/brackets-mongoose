@@ -1,11 +1,10 @@
 {
-    "compilerOptions": {
-        "target": "ES2019",
-        "module": "commonjs",
-        "strict": true,
-        "declaration": true,
-        "declarationMap": true,
-        "sourceMap": true,
-        "outDir": "dist/"
-    }
+  "extends": "@tsconfig/create-react-app/tsconfig.json",
+  "ts-node": {
+    "esm": true,
+    "experimentalSpecifierResolution": "node",
+  },
+  "compilerOptions": {
+      "target": "ESNext"
+  },
 }
