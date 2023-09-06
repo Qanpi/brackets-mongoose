@@ -41,7 +41,7 @@
     },
     "scripts": {
         "lint": "eslint '**/*.{js,ts}' --fix",
-        "test": "mocha 'test/**/*.spec.js'",
+        "test": "mocha --require 'test/hooks.js' 'test/**/*.spec.js'",
         "start": "tsc --watch",
         "build": "tsc",
         "prepare": "npm run build",
