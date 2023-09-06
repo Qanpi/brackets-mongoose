@@ -3,6 +3,7 @@ const ObjectId = SchemaTypes.ObjectId;
 
 const ParticipantSchema = new mongoose.Schema(
     {
+        name: String,
         group: {
             type: mongoose.SchemaTypes.ObjectId,
         },

@@ -1,7 +1,7 @@
 const chai = require("chai");
 const { ObjectId } = require("mongodb");
 chai.use(require("chai-as-promised"));
-const { default: MongooseForBrackets } = require("../dist/src/index");
+const { default: MongooseForBrackets } = require("../dist/index");
 const { BracketsManager } = require("brackets-manager");
 const {default: mongoose} = require("mongoose");
 
