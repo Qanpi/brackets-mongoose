@@ -1,6 +1,6 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
-import { Id } from "brackets-model";
 import { Model, Mongoose } from "mongoose";
+import { CustomId } from "./types";
 import Match from "./match";
 import Participant from "./participant";
 import Tournament, { TTournamentModel } from "./tournament";
@@ -38,7 +38,7 @@ export default class MongooseForBrackets implements CrudInterface {
     async insert<T extends keyof DataTypes>(
         table: T,
         data: OmitId<DataTypes[T]> | OmitId<DataTypes[T]>[]
-    ): Promise<Id | boolean> {
+    ): Promise<CustomId | boolean> {
         switch (table) {
             case Tables.Participant:
                 if (Array.isArray(data)) {
@@ -101,7 +101,7 @@ export default class MongooseForBrackets implements CrudInterface {
     select<T extends keyof DataTypes>(table: T): Promise<DataTypes[T][] | null>;
     select<T extends keyof DataTypes>(
         table: T,
-        id: Id
+        id: CustomId
     ): Promise<DataTypes[T] | null>;
     select<T extends keyof DataTypes>(
         table: T,
@@ -109,7 +109,7 @@ export default class MongooseForBrackets implements CrudInterface {
     ): Promise<DataTypes[T][] | null>;
     async select<T extends keyof DataTypes>(
         table: T,
-        filter?: Partial<DataTypes[T]> | Id
+        filter?: Partial<DataTypes[T]> | CustomId
     ): Promise<DataTypes[T][] | DataTypes[T] | null> {
         switch (table) {
             case Tables.Participant:
@@ -137,7 +137,7 @@ export default class MongooseForBrackets implements CrudInterface {
 
     update<T extends keyof DataTypes>(
         table: T,
-        id: Id,
+        id: CustomId,
         value: DataTypes[T]
     ): Promise<boolean>;
     update<T extends keyof DataTypes>(
@@ -147,7 +147,7 @@ export default class MongooseForBrackets implements CrudInterface {
     ): Promise<boolean>;
     async update<T extends keyof DataTypes>(
         table: T,
-        filter: Partial<DataTypes[T]> | Id,
+        filter: Partial<DataTypes[T]> | CustomId,
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
         switch (table) {

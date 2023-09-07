@@ -1,10 +1,7 @@
 import { DataTypes } from "brackets-manager";
-import { Id } from "brackets-model";
 import { filter as _filter, isMatch, matches } from "lodash";
-import { Document, HydratedDocument, Model, ObjectId, Types } from "mongoose";
-import {
-    isId,
-} from "./types";
+import { Document, HydratedDocument, Model, Types } from "mongoose";
+import { isId, CustomId } from "./types";
 
 // function isStageData(data: Partial<TSubData>): data is TStageData {
 //     return true;
@@ -28,8 +25,10 @@ export enum TournamentSubPaths {
 
 export type TTournamentSubData = DataTypes[keyof typeof TournamentSubPaths];
 
-export type TTournamentDocument = HydratedDocument<Document<ObjectId>> & {
-    [K in keyof Record<TournamentSubPaths, string>]: Types.DocumentArray<Types.ArraySubdocument<ObjectId>>;
+export type TTournamentDocument = HydratedDocument<Document<CustomId>> & {
+    [K in keyof Record<TournamentSubPaths, string>]: Types.DocumentArray<
+        Types.ArraySubdocument<CustomId>
+    >;
 };
 
 export type TTournamentModel = Model<any> & {
@@ -49,43 +48,37 @@ export default class Tournament<M extends TTournamentModel> {
 
     async insertMany(
         table: TTournamentTables,
-        data: TTournamentSubData[],
-    ): Promise<Id | boolean> {
+        data: TTournamentSubData[]
+    ): Promise<CustomId | boolean> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
-        try {
-            tournament[path].push(...data);
+        data.map(d => this.model.translateSubAliases(table, d));
+        tournament[path].push(...data);
 
-            await tournament.save();
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
+        await tournament.save();
+        return true;
     }
 
     async insertOne(
         table: TTournamentTables,
-        data: TTournamentSubData,
-    ): Promise<Id | boolean> {
+        data: TTournamentSubData
+    ): Promise<CustomId> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
-        try {
-            tournament[path].create(data);
-            await tournament.save();
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
+        const d = this.model.translateSubAliases(table, data);
+        const stage = tournament[path].create(d);
+        tournament[path].push(stage);
+
+        await tournament.save();
+        return stage._id || -1;
     }
 
     async update(
         table: TTournamentTables,
-        filter: Partial<TTournamentSubData> | Id,
-        data: Partial<TTournamentSubData> | TTournamentSubData,
+        filter: Partial<TTournamentSubData> | CustomId,
+        data: Partial<TTournamentSubData> | TTournamentSubData
     ): Promise<boolean> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
@@ -98,7 +91,7 @@ export default class Tournament<M extends TTournamentModel> {
         }
 
         const f = this.model.translateSubAliases(table, filter);
-        tournament[path].forEach((d: Types.ArraySubdocument<ObjectId>) => {
+        tournament[path].forEach((d: Types.ArraySubdocument<CustomId>) => {
             if (isMatch(d, f)) tournament.set(f);
         });
 
@@ -108,7 +101,7 @@ export default class Tournament<M extends TTournamentModel> {
 
     async select(
         table: TTournamentTables,
-        filter?: Partial<TTournamentSubData> | Id,
+        filter?: Partial<TTournamentSubData> | CustomId
     ): Promise<TTournamentSubData | TTournamentSubData[] | null> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
@@ -117,19 +110,19 @@ export default class Tournament<M extends TTournamentModel> {
             return tournament[path] as unknown as Promise<TTournamentSubData[]>;
         else if (isId(filter)) {
             return tournament[path].id(
-                filter,
+                filter
             ) as unknown as Promise<TTournamentSubData>;
         }
 
         return _filter(
             tournament[path].toObject(),
-            this.model.translateSubAliases(table, filter),
+            this.model.translateSubAliases(table, filter)
         ) as unknown as TTournamentSubData[];
     }
 
     async delete(
         table: TTournamentTables,
-        filter?: Partial<TTournamentSubData>,
+        filter?: Partial<TTournamentSubData>
     ): Promise<boolean> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
@@ -138,19 +131,14 @@ export default class Tournament<M extends TTournamentModel> {
         else {
             const filtered = _filter(
                 tournament[path].toObject() as object[],
-                !matches(this.model.translateSubAliases(table, filter)),
+                !matches(this.model.translateSubAliases(table, filter))
             ) as unknown as Types.DocumentArray<
-                Types.ArraySubdocument<ObjectId>
+                Types.ArraySubdocument<CustomId>
             >;
             tournament[path] = filtered;
         }
 
-        try {
-            await tournament.save();
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
+        await tournament.save();
+        return true;
     }
 }

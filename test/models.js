@@ -1,5 +1,6 @@
 const { default: mongoose, SchemaTypes } = require("mongoose");
 const ObjectId = SchemaTypes.ObjectId;
+const {mergeWith} = require("lodash");
 
 const ParticipantSchema = new mongoose.Schema(
     {
@@ -124,12 +125,16 @@ const MatchSchema = new mongoose.Schema(
     {
         statics: {
             translateAliases: (data) => {
-                data = data.toObject();
+                // data = data.toObject();
 
                 data.childCount = data["child_count"];
+                delete data["child_count"];
                 data.group = data["group_id"];
+                delete data["group_id"];
                 data.round = data["round_id"];
+                delete data["round_id"];
                 data.stage = data["stage_id"];
+                delete data["stage_id"];
 
                 mergeWith(
                     data,
@@ -188,13 +193,11 @@ const StageSchema = new mongoose.Schema(
             type: String,
             enum: ["round_robin", "single_elimination", "double_elimination"],
         },
+        division: ObjectId,
     },
     { toJSON: { virtuals: true }, toObject: { virtuals: true } }
 );
 
-StageSchema.virtual("tournament_id").get(function () {
-    return this.parent()._id;
-});
 exports.StageSchema = StageSchema;
 const RoundSchema = new mongoose.Schema(
     {
@@ -227,22 +230,23 @@ const TournamentSchema = new mongoose.Schema(
                 switch (subdoc) {
                     case "group":
                         if (obj.stage_id) {
-                            obj.stage = new ObjectId(obj.stage_id);
+                            obj.stage = obj.stage_id;
                             delete obj.stage_id;
                         }
                         break;
                     case "stage":
-                        if (obj.tournament_id)
-                            obj.tournament_id = new ObjectId(obj.tournament_id);
-
+                        if (obj.tournament_id) {
+                            obj.division = obj.tournament_id;
+                            delete obj.tournament_id;
+                        }
                         break;
                     case "round":
                         if (obj.group_id) {
-                            obj.group = new ObjectId(obj.group_id);
+                            obj.group = obj.group_id;
                             delete obj.group_id;
                         }
                         if (obj.stage_id) {
-                            obj.stage = new ObjectId(obj.stage_id);
+                            obj.stage = obj.stage_id;
                             delete obj.stage_id;
                         }
                         break;

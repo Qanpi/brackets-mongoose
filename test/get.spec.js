@@ -1,9 +1,8 @@
 const chai = require("chai");
-const { ObjectId } = require("mongodb");
 chai.use(require("chai-as-promised"));
 const { default: MongooseForBrackets } = require("../dist/index");
 const { BracketsManager } = require("brackets-manager");
-const {default: mongoose} = require("mongoose");
+const {default: mongoose, Types} = require("mongoose");
 
 const assert = chai.assert;
 
@@ -18,16 +17,20 @@ describe("Get child games", () => {
     });
 
     it.only("should get child games of a list of matches", async () => {
+        const tournamentId = new Types.ObjectId();
+
         await this.manager.create.stage({
             name: "Example",
-            tournamentId: new ObjectId(),
+            tournamentId: tournamentId,
             type: "single_elimination",
             seeding: ["Team 1", "Team 2", "Team 3", "Team 4"],
             settings: { matchesChildCount: 2 },
         });
 
+        const stage = await this.manager.get.currentStage(tournamentId);
+        const round = await this.manager.get.currentRound(stage.id);
 
-        const matches = await this.storage.select("match", { round_id: 0 });
+        const matches = await this.storage.select("match", { round_id: round.id });
         const games = await this.manager.get.matchGames(matches);
 
         assert.strictEqual(matches.length, 2);

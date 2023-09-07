@@ -1,11 +1,10 @@
 import { DataTypes, OmitId } from "brackets-manager";
-import { Id } from "brackets-model";
-import { Document, FilterQuery, Model, ObjectId } from "mongoose";
-import { isId } from "./types";
+import { Document, FilterQuery, Model} from "mongoose";
+import { isId, CustomId } from "./types";
 
 export default class Participant<
     M extends Model<any>,
-    T extends keyof DataTypes,
+    T extends keyof DataTypes
 > {
     protected model: M;
 
@@ -21,16 +20,9 @@ export default class Participant<
      *
      * @param data
      */
-    async insertOne(data: OmitId<DataTypes[T]>): Promise<Id> {
-        try {
-            const result = (await this.model.create(
-                data,
-            )) as Document<ObjectId>;
-            return result._id?.toString() || -1;
-        } catch (err) {
-            console.error(err);
-            return -1;
-        }
+    async insertOne(data: OmitId<DataTypes[T]>): Promise<CustomId> {
+        const result = (await this.model.create(data)) as Document<CustomId>;
+        return result._id || -1;
     }
 
     /**
@@ -38,27 +30,22 @@ export default class Participant<
      * @param data
      */
     async insertMany(data: OmitId<DataTypes[T]>[]): Promise<boolean> {
-        try {
-            await this.model.insertMany(data);
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
-        }
+        await this.model.insertMany(data);
+        return true;
     }
 
     async select(
-        filter?: Partial<DataTypes[T]> | Id,
+        filter?: Partial<DataTypes[T]> | CustomId
     ): Promise<DataTypes[T] | DataTypes[T][] | null> {
         if (!filter) {
-            return await this.model.find({}).exec() as unknown as Promise<
+            return (await this.model.find({}).exec()) as unknown as Promise<
                 DataTypes[T][]
             >;
         } else if (isId(filter)) {
             //TODO: custom type predicate for Id
-            return await this.model.findById(filter).exec() as unknown as Promise<
-                DataTypes[T]
-            >;
+            return (await this.model
+                .findById(filter)
+                .exec()) as unknown as Promise<DataTypes[T]>;
         }
 
         const selected = await this.model
@@ -68,8 +55,8 @@ export default class Participant<
     }
 
     async update(
-        filter: Partial<DataTypes[T]> | Id,
-        data: Partial<DataTypes[T]> | DataTypes[T],
+        filter: Partial<DataTypes[T]> | CustomId,
+        data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
         const d = this.model.translateAliases(data) as object;
 
@@ -87,22 +74,15 @@ export default class Participant<
      * @param filter
      */
     async delete(filter?: Partial<DataTypes[T]>): Promise<boolean> {
-        try {
-            if (!filter) await this.model.deleteMany({});
-            if (filter?.id) await this.model.findByIdAndDelete(filter.id);
-            else {
-                const f = this.model.translateAliases(
-                    filter,
-                ) as FilterQuery<any>;
+        if (!filter) await this.model.deleteMany({});
+        if (filter?.id) await this.model.findByIdAndDelete(filter.id);
+        else {
+            const f = this.model.translateAliases(filter) as FilterQuery<any>;
 
-                await this.model.deleteMany({
-                    ...f,
-                });
-            }
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
+            await this.model.deleteMany({
+                ...f,
+            });
         }
+        return true;
     }
 }
