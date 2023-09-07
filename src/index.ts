@@ -1,5 +1,5 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
-import { Model, Mongoose } from "mongoose";
+import mongoose, { Model, Mongoose } from "mongoose";
 import Participant from "./participant";
 import Tournament, { TTournamentModel } from "./tournament";
 import Match from "./match";
@@ -221,7 +221,10 @@ export default class MongooseForBrackets implements CrudInterface {
         }
     }
 
-    reset(): void {
-        console.log("reset");
+    async reset(): Promise<boolean> {
+        await mongoose.model("Tournament").collection.drop();
+        await mongoose.model("Participant").collection.drop();
+        await mongoose.model("Match").collection.drop();
+        return true;
     }
 }

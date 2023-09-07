@@ -12,11 +12,13 @@ describe("Get child games", () => {
         this.manager = new BracketsManager(this.storage, true);
     });
 
-    beforeEach(() => {
-        this.storage.reset();
+    beforeEach(async () => {
+        await this.storage.reset();
+        const Tournament = mongoose.model("Tournament");
+        await Tournament.create({name: "Mock Tournament"});
     });
 
-    it.only("should get child games of a list of matches", async () => {
+    it("should get child games of a list of matches", async () => {
         const tournamentId = new Types.ObjectId();
 
         await this.manager.create.stage({

@@ -13,8 +13,7 @@ exports.mochaGlobalSetup = async function () {
     });
 
     // console.log(await Tournament.find({}).exec());
-    const Tournament = await mongoose.model("Tournament", TournamentSchema);
-    await Tournament.create({name: "Mock Tournament"});
+    await mongoose.model("Tournament", TournamentSchema);
     await mongoose.model("Participant", ParticipantSchema);
     await mongoose.model("Match", MatchSchema);
 
