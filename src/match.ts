@@ -1,7 +1,7 @@
 import { DataTypes } from "brackets-manager";
 import { Document, HydratedDocument, Model, Types } from "mongoose";
 import Participant from "./participant";
-import { CustomId } from "./types";
+import { CustomId, isId } from "./types";
 
 export enum MatchSubPaths {
     match_game = "games",
@@ -64,7 +64,25 @@ export default class Match<
         table: TMatchTables,
         filter?: Partial<DataTypes[S]> | CustomId
     ): Promise<DataTypes[S] | DataTypes[S][] | null> {
-        return null;
+        if (isId(filter)) {
+            const match = await this.model.findOne({ "games.id": filter }) as TMatchDocument;
+            return match?.games.id(filter) as unknown as Promise<DataTypes[S]>;
+        }
+
+        const games = await this.model.aggregate([
+            {
+                $unwind: "$games",
+            },
+            {
+                $replaceRoot: {
+                    newRoot: "$games",
+                },
+            },
+            {
+                $match: filter ? filter : {},
+            },
+        ]).exec() as unknown as DataTypes[S][];
+        return games;
     }
 
     async updateSubdocs(

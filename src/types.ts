@@ -6,7 +6,7 @@ import { ObjectId, isValidObjectId } from "mongoose";
 
 export type CustomId = ObjectId | Id;
 
-export function isId<T extends keyof DataTypes>(id: Partial<DataTypes[T]> | CustomId): id is CustomId {
+export function isId<T extends keyof DataTypes>(id?: Partial<DataTypes[T]> | CustomId): id is CustomId {
     return typeof id === "number" || typeof id === "string" || isValidObjectId(id);
 }
 
