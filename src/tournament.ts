@@ -33,10 +33,6 @@ export type TTournamentDocument = HydratedDocument<Document<CustomId>> & {
 
 export type TTournamentModel = Model<any> & {
     findCurrent: () => Promise<TTournamentDocument>;
-    translateSubAliases: (
-        table: keyof typeof TournamentSubPaths,
-        data: Partial<TTournamentSubData>
-    ) => object;
 };
 
 export default class Tournament<M extends TTournamentModel> {
@@ -53,7 +49,6 @@ export default class Tournament<M extends TTournamentModel> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
-        data.map(d => this.model.translateSubAliases(table, d));
         tournament[path].push(...data);
 
         await tournament.save();
@@ -67,8 +62,7 @@ export default class Tournament<M extends TTournamentModel> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
-        const d = this.model.translateSubAliases(table, data);
-        const stage = tournament[path].create(d);
+        const stage = tournament[path].create(data);
         tournament[path].push(stage);
 
         await tournament.save();
@@ -83,16 +77,13 @@ export default class Tournament<M extends TTournamentModel> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
-        const d = this.model.translateSubAliases(table, data);
-
         if (isId(filter)) {
-            await this.model.findByIdAndUpdate(filter, d);
+            await this.model.findByIdAndUpdate(filter, data);
             return true;
         }
 
-        const f = this.model.translateSubAliases(table, filter);
         tournament[path].forEach((d: Types.ArraySubdocument<CustomId>) => {
-            if (isMatch(d, f)) tournament.set(f);
+            if (isMatch(d, filter)) tournament.set(filter);
         });
 
         await tournament.save();
@@ -116,7 +107,7 @@ export default class Tournament<M extends TTournamentModel> {
 
         return _filter(
             tournament[path].toObject(),
-            this.model.translateSubAliases(table, filter)
+            filter
         ) as unknown as TTournamentSubData[];
     }
 
@@ -131,7 +122,7 @@ export default class Tournament<M extends TTournamentModel> {
         else {
             const filtered = _filter(
                 tournament[path].toObject() as object[],
-                !matches(this.model.translateSubAliases(table, filter))
+                !matches(filter)
             ) as unknown as Types.DocumentArray<
                 Types.ArraySubdocument<CustomId>
             >;

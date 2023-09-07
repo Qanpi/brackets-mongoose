@@ -49,7 +49,7 @@ export default class Participant<
         }
 
         const selected = await this.model
-            .find(this.model.translateAliases(filter) as object)
+            .find(filter)
             .exec();
         return selected as unknown as Promise<DataTypes[T][]>;
     }
@@ -58,15 +58,12 @@ export default class Participant<
         filter: Partial<DataTypes[T]> | CustomId,
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
-        const d = this.model.translateAliases(data) as object;
-
         if (isId(filter)) {
-            await this.model.findByIdAndUpdate(filter, d);
+            await this.model.findByIdAndUpdate(filter, data);
             return true;
         }
 
-        const f = this.model.translateAliases(filter) as object;
-        await this.model.updateMany(f, d);
+        await this.model.updateMany(filter, data);
         return true;
     }
     /**
@@ -77,11 +74,7 @@ export default class Participant<
         if (!filter) await this.model.deleteMany({});
         if (filter?.id) await this.model.findByIdAndDelete(filter.id);
         else {
-            const f = this.model.translateAliases(filter) as FilterQuery<any>;
-
-            await this.model.deleteMany({
-                ...f,
-            });
+            await this.model.deleteMany(filter);
         }
         return true;
     }

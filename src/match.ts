@@ -67,6 +67,9 @@ export default class Match<
         if (isId(filter)) {
             const match = await this.model.findOne({ "games.id": filter }) as TMatchDocument;
             return match?.games.id(filter) as unknown as Promise<DataTypes[S]>;
+        } else if (filter?.parent_id) {
+            const match = await this.model.findById(filter.parent_id) as TMatchDocument;
+            return match.games.toObject() as unknown as DataTypes[S];
         }
 
         const games = await this.model.aggregate([

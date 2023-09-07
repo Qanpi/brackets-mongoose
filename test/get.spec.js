@@ -35,7 +35,7 @@ describe("Get child games", () => {
 
         assert.strictEqual(matches.length, 2);
         assert.strictEqual(games.length, 4);
-        assert.strictEqual(games[2].parent_id, 1);
+        assert.strictEqual(games[2].parent_id.toString(), matches[1].id);
     });
 
     it("should get child games of a list of matches with some which do not have child games", async () => {
