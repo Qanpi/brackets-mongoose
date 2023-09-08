@@ -1,7 +1,14 @@
 import { DataTypes } from "brackets-manager";
-import { Document, HydratedDocument, Model, Types } from "mongoose";
-import Participant from "./participant";
+import {
+    Document,
+    HydratedDocument,
+    Model,
+    SchemaTypes,
+    Types,
+} from "mongoose";
+import MongooseCRUD from "./crud";
 import { CustomId, isId } from "./types";
+import { isMatch } from "lodash";
 
 export enum MatchSubPaths {
     match_game = "games",
@@ -15,18 +22,14 @@ export type TMatchDocument = HydratedDocument<Document<CustomId>> & {
     >;
 };
 
-export default class Match<
-    M extends Model<any>,
-    T extends keyof DataTypes,
-    S extends TMatchTables
-> extends Participant<M, T> {
-    constructor(model: M) {
+export default class Match extends MongooseCRUD<Model<any>, "match"> {
+    constructor(model: Model<any>) {
         super(model);
     }
 
     async insertManySubdocs(
         table: TMatchTables,
-        data: DataTypes[S][]
+        data: DataTypes[TMatchTables][]
     ): Promise<CustomId | boolean> {
         const path = MatchSubPaths[table];
 
@@ -45,7 +48,7 @@ export default class Match<
 
     async insertOneSubdoc(
         table: TMatchTables,
-        data: DataTypes[S]
+        data: DataTypes[TMatchTables]
     ): Promise<CustomId> {
         const path = MatchSubPaths[table];
 
@@ -60,46 +63,83 @@ export default class Match<
         return game._id?.toString() || -1;
     }
 
+    async update(
+        filter: CustomId | Partial<DataTypes["match"]>,
+        data: DataTypes["match"] | Partial<DataTypes["match"]>
+    ): Promise<boolean> {
+        // if ("_doc" in data && "games" in data._doc) delete data["games"]; //ugly fix to prevent updates from modifying the value of nested subdoc array
+        if ("games" in data) delete data["games"];
+        return await super.update(filter, data);
+    }
+
     async selectSubdocs(
         table: TMatchTables,
-        filter?: Partial<DataTypes[S]> | CustomId
-    ): Promise<DataTypes[S] | DataTypes[S][] | null> {
-        if (isId(filter)) {
-            const match = await this.model.findOne({ "games.id": filter }) as TMatchDocument;
-            return match?.games.id(filter) as unknown as Promise<DataTypes[S]>;
+        filter?: Partial<DataTypes[TMatchTables]> | CustomId
+    ): Promise<DataTypes[TMatchTables] | DataTypes[TMatchTables][] | null> {
+        if (!filter) {
+            const games = (await this.model
+                .aggregate([
+                    {
+                        $unwind: "$games",
+                    },
+                    {
+                        $replaceRoot: {
+                            newRoot: "$games",
+                        },
+                    },
+                    // {
+                    //     $match: filter ? filter : {},
+                    // },
+                ])
+                .exec()) as unknown as DataTypes[TMatchTables][];
+            return games;
+        } else if (isId(filter)) {
+            const match = (await this.model.findOne({
+                "games.id": filter,
+            })) as TMatchDocument;
+            return match?.games.id(filter) as unknown as Promise<
+                DataTypes[TMatchTables]
+            >;
         } else if (filter?.parent_id) {
-            const match = await this.model.findById(filter.parent_id) as TMatchDocument;
-            return match.games.toObject() as unknown as DataTypes[S];
+            const match = (await this.model.findById(
+                filter.parent_id
+            )) as TMatchDocument;
+            return match.games.toObject() as unknown as DataTypes[TMatchTables];
         }
 
-        const games = await this.model.aggregate([
-            {
-                $unwind: "$games",
-            },
-            {
-                $replaceRoot: {
-                    newRoot: "$games",
-                },
-            },
-            {
-                $match: filter ? filter : {},
-            },
-        ]).exec() as unknown as DataTypes[S][];
-        return games;
+        return null;
     }
 
     async updateSubdocs(
         table: TMatchTables,
-        filter: Partial<DataTypes[S]> | CustomId,
-        data: Partial<DataTypes[S]> | DataTypes[T]
+        filter: Partial<DataTypes[TMatchTables]> | CustomId,
+        data: Partial<DataTypes[TMatchTables]> | DataTypes["match"]
     ): Promise<boolean> {
         return false;
     }
 
     async deleteSubdocs(
         table: TMatchTables,
-        filter?: Partial<DataTypes[S]>
+        filter?: Partial<DataTypes[TMatchTables]>
     ): Promise<boolean> {
+        const path = MatchSubPaths[table];
+
+        if (filter) {
+            const { parent_id, ...query } = filter;
+            const match = (await this.model.findById(
+                parent_id
+            )) as TMatchDocument;
+
+            const toDelete = match[path].filter(
+                (d) => !isMatch(d, query)
+            ) as Types.DocumentArray<Types.ArraySubdocument<CustomId>>;
+
+            match[path] = match[path].pull(...toDelete);
+
+            const test = await match.save();
+
+            return true;
+        }
         return false;
     }
 }

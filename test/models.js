@@ -1,5 +1,6 @@
 const { default: mongoose, SchemaTypes } = require("mongoose");
 const ObjectId = SchemaTypes.ObjectId;
+const mongooseLeanVirtuals = require('mongoose-lean-virtuals');
 // const {mergeWith} = require("lodash");
 
 const ParticipantSchema = new mongoose.Schema(
@@ -48,15 +49,26 @@ const MatchGameSchema = new mongoose.Schema(
     },
     {
         virtuals: {
+            //lean queries
             parent_id: {
                 get() {
-                    return this.$parent()?._id;
+                    if (this instanceof mongoose.Document) {
+                        return this.$parent()._id;
+                    }
+                    return mongooseLeanVirtuals.parent(this)._id;
+                    // return "parent_id";
+                    // return this.$parent()?._id;
                 },
             },
 
             stage_id: {
                 get() {
-                    return this.$parent().stage; //FIXME: not typesafe because circular ref
+                    if (this instanceof mongoose.Document) {
+                        return this.$parent().stage_id; 
+                    }
+                    return mongooseLeanVirtuals.parent(this).stage_id;
+                    // return "stage_id";
+                    // return this.$parent().stage; //FIXME: not typesafe because circular ref
                 },
             },
         },
@@ -121,6 +133,7 @@ const MatchSchema = new mongoose.Schema(
         toObject: { virtuals: true },
     }
 );
+MatchSchema.plugin(mongooseLeanVirtuals);
 exports.MatchSchema = MatchSchema;
 const StageSchema = new mongoose.Schema(
     {

@@ -3,6 +3,7 @@ chai.use(require("chai-as-promised"));
 const { default: MongooseForBrackets } = require("../dist/index");
 const { BracketsManager } = require("brackets-manager");
 const {default: mongoose, Types} = require("mongoose");
+const ObjectId = Types.ObjectId;
 
 const assert = chai.assert;
 
@@ -19,7 +20,7 @@ describe("Get child games", () => {
     });
 
     it("should get child games of a list of matches", async () => {
-        const tournamentId = new Types.ObjectId();
+        const tournamentId = new ObjectId();
 
         await this.manager.create.stage({
             name: "Example",
@@ -40,18 +41,24 @@ describe("Get child games", () => {
         assert.strictEqual(games[2].parent_id.toString(), matches[1].id);
     });
 
-    it("should get child games of a list of matches with some which do not have child games", async () => {
+    it.only("should get child games of a list of matches with some which do not have child games", async () => {
+        const tournamentId = new ObjectId();
+
         await this.manager.create.stage({
             name: "Example",
-            tournamentId: 0,
+            tournamentId: tournamentId,
             type: "single_elimination",
             seeding: ["Team 1", "Team 2", "Team 3", "Team 4"],
             settings: { matchesChildCount: 2 },
         });
 
-        await this.manager.update.matchChildCount("match", 1, 0); // Remove child games from match id 1.
+        const stage = await this.manager.get.currentStage(tournamentId);
+        const round = await this.manager.get.currentRound(stage.id);
+        const currentMatches = await this.manager.get.currentMatches(stage.id);
 
-        const matches = await this.storage.select("match", { round_id: 0 });
+        await this.manager.update.matchChildCount("match", currentMatches[1].id, 0); // Remove child games from the second match
+
+        const matches = await this.storage.select("match", { round_id: round.id });
         const games = await this.manager.get.matchGames(matches);
 
         assert.strictEqual(matches.length, 2);

@@ -17,6 +17,7 @@
         "mongodb": "^5.6.0",
         "mongodb-memory-server": "^8.15.1",
         "mongoose": "^7.5.0",
+        "mongoose-lean-virtuals": "^0.9.1",
         "uuid": "^9.0.0"
     },
     "devDependencies": {

@@ -16,10 +16,11 @@ enum Tables {
 
 export default class MongooseForBrackets implements CrudInterface {
     private tournament: Tournament<TTournamentModel>;
-    private participant: Participant<Model<any>, Tables.Participant>;
-    private match: Match<Model<any>, Tables.Match, Tables.MatchGame>;
+    private participant: Participant;
+    private match: Match;
 
     constructor(mongoose: Mongoose) {
+        //FIXME: don't rely on magic strings
         this.tournament = new Tournament(
             mongoose.model("Tournament") as TTournamentModel
         );
