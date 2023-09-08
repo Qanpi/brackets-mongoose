@@ -52,9 +52,9 @@ const MatchGameSchema = new mongoose.Schema(
             //lean queries
             parent_id: {
                 get() {
-                    if (this instanceof mongoose.Document) {
+                    if (this instanceof mongoose.Document) 
                         return this.$parent()._id;
-                    }
+                    
                     return mongooseLeanVirtuals.parent(this)._id;
                     // return "parent_id";
                     // return this.$parent()?._id;
@@ -63,9 +63,9 @@ const MatchGameSchema = new mongoose.Schema(
 
             stage_id: {
                 get() {
-                    if (this instanceof mongoose.Document) {
+                    if (this instanceof mongoose.Document) 
                         return this.$parent().stage_id; 
-                    }
+                    
                     return mongooseLeanVirtuals.parent(this).stage_id;
                     // return "stage_id";
                     // return this.$parent().stage; //FIXME: not typesafe because circular ref

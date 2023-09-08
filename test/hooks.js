@@ -1,4 +1,4 @@
-const { default: mongoose, SchemaTypes } = require("mongoose");
+const { default: mongoose } = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
 const { TournamentSchema } = require("./models");
 const { ParticipantSchema } = require("./models");
