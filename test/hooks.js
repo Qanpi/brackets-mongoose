@@ -3,6 +3,8 @@ const { MongoMemoryServer } = require("mongodb-memory-server");
 const { TournamentSchema } = require("./models");
 const { ParticipantSchema } = require("./models");
 const { MatchSchema } = require("./models");
+const { default: MongooseForBrackets } = require("../dist/index");
+const { BracketsManager } = require("brackets-manager");
 // require("dotenv").config();
 
 exports.mochaGlobalSetup = async function () {
@@ -23,4 +25,16 @@ exports.mochaGlobalSetup = async function () {
 exports.mochaGlobalTeardown = async function () {
     await mongoose.disconnect();
     console.log("Server has disconnected.");
+};
+
+exports.mochaHooks = {
+    beforeAll: function() {
+        this.storage = new MongooseForBrackets(mongoose);
+        this.manager = new BracketsManager(this.storage, true);
+    },
+    beforeEach: async function() {
+        await this.storage.reset();
+        const Tournament = mongoose.model("Tournament");
+        await Tournament.create({name: "Mock Tournament"});
+    }
 };

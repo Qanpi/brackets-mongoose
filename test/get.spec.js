@@ -13,13 +13,13 @@ describe("Get child games", () => {
         this.manager = new BracketsManager(this.storage, true);
     });
 
-    beforeEach(async () => {
+    beforeEach(async function() {
         await this.storage.reset();
         const Tournament = mongoose.model("Tournament");
         await Tournament.create({name: "Mock Tournament"});
     });
 
-    it("should get child games of a list of matches", async () => {
+    it("should get child games of a list of matches", async function() {
         const tournamentId = new ObjectId();
 
         await this.manager.create.stage({
@@ -41,7 +41,7 @@ describe("Get child games", () => {
         assert.strictEqual(games[2].parent_id.toString(), matches[1].id);
     });
 
-    it.only("should get child games of a list of matches with some which do not have child games", async () => {
+    it("should get child games of a list of matches with some which do not have child games", async function() {
         const tournamentId = new ObjectId();
 
         await this.manager.create.stage({
@@ -67,14 +67,16 @@ describe("Get child games", () => {
 });
 
 describe("Get final standings", () => {
-    beforeEach(() => {
-        this.storage.reset();
-    });
+    // beforeEach(() => {
+    //     this.storage.reset();
+    // });
+    
+    const divisionId = new ObjectId();
 
-    it("should get the final standings for a single elimination stage with consolation final", async () => {
+    it.only("should get the final standings for a single elimination stage with consolation final", async function() {
         await this.manager.create.stage({
             name: "Example",
-            tournamentId: 0,
+            tournamentId: divisionId,
             type: "single_elimination",
             seeding: [
                 "Team 1",
@@ -89,9 +91,12 @@ describe("Get final standings", () => {
             settings: { consolationFinal: true },
         });
 
-        for (let i = 0; i < 8; i++) {
+        const stage = await this.manager.get.currentStage(divisionId);
+        const matches = await this.manager.get.currentMatches(stage.id);
+
+        for (let i = 0; i < matches.length; i++) {
             await this.manager.update.match({
-                id: i,
+                id: matches[i].id,
                 ...(i % 2 === 0
                     ? { opponent1: { result: "win" } }
                     : { opponent2: { result: "win" } }),
@@ -115,7 +120,7 @@ describe("Get final standings", () => {
         ]);
     });
 
-    it("should get the final standings for a single elimination stage without consolation final", async () => {
+    it("should get the final standings for a single elimination stage without consolation final", async function() {
         await this.manager.create.stage({
             name: "Example",
             tournamentId: 0,
@@ -159,7 +164,7 @@ describe("Get final standings", () => {
         ]);
     });
 
-    it("should get the final standings for a double elimination stage with a grand final", async () => {
+    it("should get the final standings for a double elimination stage with a grand final", async function() {
         await this.manager.create.stage({
             name: "Example",
             tournamentId: 0,
@@ -200,7 +205,7 @@ describe("Get final standings", () => {
         ]);
     });
 
-    it("should get the final standings for a double elimination stage without a grand final", async () => {
+    it("should get the final standings for a double elimination stage without a grand final", async function() {
         await this.manager.create.stage({
             name: "Example",
             tournamentId: 0,
@@ -244,7 +249,7 @@ describe("Get final standings", () => {
 });
 
 describe("Get seeding", () => {
-    it("should get the seeding of a round-robin stage", async () => {
+    it("should get the seeding of a round-robin stage", async function() {
         this.storage.reset();
 
         await this.manager.create.stage({
@@ -264,7 +269,7 @@ describe("Get seeding", () => {
         assert.strictEqual(seeding[1].position, 2);
     });
 
-    it("should get the seeding of a round-robin stage with BYEs", async () => {
+    it("should get the seeding of a round-robin stage with BYEs", async function() {
         this.storage.reset();
 
         await this.manager.create.stage({
@@ -282,7 +287,7 @@ describe("Get seeding", () => {
         assert.strictEqual(seeding.length, 8);
     });
 
-    it("should get the seeding of a round-robin stage with BYEs after update", async () => {
+    it("should get the seeding of a round-robin stage with BYEs after update", async function() {
         this.storage.reset();
 
         await this.manager.create.stage({
@@ -310,7 +315,7 @@ describe("Get seeding", () => {
         assert.strictEqual(seeding.length, 8);
     });
 
-    it("should get the seeding of a single elimination stage", async () => {
+    it("should get the seeding of a single elimination stage", async function() {
         this.storage.reset();
 
         await this.manager.create.stage({
@@ -326,7 +331,7 @@ describe("Get seeding", () => {
         assert.strictEqual(seeding[1].position, 2);
     });
 
-    it("should get the seeding with BYEs", async () => {
+    it("should get the seeding with BYEs", async function() {
         this.storage.reset();
 
         await this.manager.create.stage({
