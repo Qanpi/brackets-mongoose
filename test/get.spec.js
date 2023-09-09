@@ -56,7 +56,7 @@ describe("Get child games", () => {
 });
 
 describe("Get final standings", () => {
-    const divisionId = new ObjectId();
+    const divisionId = new ObjectId().toString();
 
     it.only("should get the final standings for a single elimination stage with consolation final", async function() {
         await this.manager.create.stage({

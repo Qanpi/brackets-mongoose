@@ -90,7 +90,7 @@ export default class Tournament<M extends TTournamentModel> {
         tournament[path].push(stage);
 
         await tournament.save();
-        return stage._id || -1;
+        return stage.id as string || -1;
     }
 
     async update(
