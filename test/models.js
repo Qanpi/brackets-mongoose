@@ -13,23 +13,23 @@ const { default: Increment } = require("./increment");
 //     this.property = new Types.ObjectId(v);
 // }
 
-async function counter() {
-    if (!this.isNew) return;
+function constructCounter(property) {
+    async function counter() {
+        if (!this.isNew) return;
 
-    let metadata = await Increment.findOne({
-        model: this.constructor.modelName,
-    });
-    if (!metadata)
-        metadata = new Increment({ model: this.constructor.modelName });
+        let metadata = await Increment.findOne({
+            model: this.constructor.modelName,
+        });
+        if (!metadata)
+            metadata = new Increment({ model: this.constructor.modelName });
 
-    this.id = metadata.idx;
-    metadata.latest = this._id;
+        this[property] = metadata.idx;
+        metadata.latest = this._id;
 
-    metadata.idx++;
-    return await metadata.save();
-}
+        metadata.idx++;
+        return await metadata.save();
+    }
 
-function constructCounter() {
     return function () {
         return counter.apply(this);
     };
@@ -37,8 +37,6 @@ function constructCounter() {
 
 const ParticipantSchema = new mongoose.Schema(
     {
-        id: Number,
-
         name: String,
         group_id: {
             type: mongoose.SchemaTypes.ObjectId,
@@ -51,41 +49,57 @@ const ParticipantSchema = new mongoose.Schema(
             type: mongoose.SchemaTypes.ObjectId,
             get: (v) => v.toString(),
             // set: v => new Types.ObjectId(v),
-            index: true,
+            // index: true,
             // alias: "tournament_id"
         },
     },
     {
-        // virtuals: {
-        //     group_id: virtualProperty("group"),
-        //     tournament_id: virtualProperty("tournament"),
-        // },
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
         id: false,
     }
 );
 
-ParticipantSchema.pre("save", constructCounter());
-
 ParticipantSchema.plugin(mongooseLeanGetters);
 ParticipantSchema.plugin(mongooseLeanVirtuals);
 
+ParticipantSchema.discriminator(
+    "ObjectId",
+    new mongoose.Schema(
+        {},
+        {
+            id: true,
+        }
+    )
+);
+
+ParticipantSchema.pre("save", constructCounter("id"));
+
+ParticipantSchema.discriminator(
+    "NumberId",
+    new mongoose.Schema({
+        id: Number,
+    })
+);
+
 exports.ParticipantSchema = ParticipantSchema;
 
-const ParticipantResultSchema = new mongoose.Schema({
-    id: Number,
-    forfeit: Boolean,
-    name: String,
-    position: Number,
-    result: {
-        type: String,
-        enum: ["win", "draw", "loss"],
+const ParticipantResultSchema = new mongoose.Schema(
+    {
+        id: Number,
+        forfeit: Boolean,
+        name: String,
+        position: Number,
+        result: {
+            type: String,
+            enum: ["win", "draw", "loss"],
+        },
+        score: Number,
     },
-    score: Number,
-}, {
-    id: false,
-});
+    {
+        id: false,
+    }
+);
 
 exports.ParticipantResultSchema = ParticipantResultSchema;
 
@@ -307,6 +321,6 @@ const TournamentSchema = new mongoose.Schema(
     }
 );
 
-TournamentSchema.pre("save", constructCounter());
+TournamentSchema.pre("save", constructCounter("idx"));
 
 exports.TournamentSchema = TournamentSchema;

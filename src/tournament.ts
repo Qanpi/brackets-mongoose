@@ -8,7 +8,7 @@ import {
     mapValues,
 } from "lodash";
 import { Document, HydratedDocument, Model, Query, Types } from "mongoose";
-import { isId } from "./types";
+import { isId} from "./types";
 import { Id } from "brackets-model";
 import { ObjectId } from "mongodb";
 
@@ -91,7 +91,7 @@ export default class Tournament<M extends TTournamentModel> {
         tournament[path].push(stage);
 
         await tournament.save();
-        return stage.id as string || -1;
+        return stage.id as Id || -1;
     }
 
     async update(

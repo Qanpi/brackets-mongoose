@@ -30,7 +30,7 @@ describe("Get child games", () => {
         assert.strictEqual(games[2].parent_id.toString(), matches[1].id);
     });
 
-    it.only("should get child games of a list of matches with some which do not have child games", async function() {
+    it("should get child games of a list of matches with some which do not have child games", async function() {
         const tournamentId = new ObjectId().toString();
 
         const stage = await this.manager.create.stage({
@@ -106,9 +106,9 @@ describe("Get final standings", () => {
     });
 
     it("should get the final standings for a single elimination stage without consolation final", async function() {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: "Example",
-            tournamentId: 0,
+            tournamentId: tournamentId,
             type: "single_elimination",
             seeding: [
                 "Team 1",

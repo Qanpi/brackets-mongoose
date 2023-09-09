@@ -24,7 +24,7 @@ export default class MongooseForBrackets implements CrudInterface {
         this.tournament = new Tournament(
             mongoose.model("Tournament") as TTournamentModel
         );
-        this.participant = new Participant(mongoose.model("Participant"));
+        this.participant = new Participant(mongoose.model("Participant").discriminators!["NumberId"]);
         this.match = new Match(mongoose.model("Match"));
     }
 
