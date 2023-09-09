@@ -2,6 +2,7 @@ const { default: mongoose, SchemaTypes, Types } = require("mongoose");
 const ObjectId = SchemaTypes.ObjectId;
 const mongooseLeanVirtuals = require("mongoose-lean-virtuals");
 const mongooseLeanGetters = require("mongoose-lean-getters");
+const { default: Increment } = require("./increment");
 // const {mergeWith} = require("lodash");
 
 // function virtualGetter(property) {
@@ -12,19 +13,39 @@ const mongooseLeanGetters = require("mongoose-lean-getters");
 //     this.property = new Types.ObjectId(v);
 // }
 
+function constructCounter() {
+    async function counter() {
+        if (this.isNew) {
+            let metadata = await Increment.findOne({
+                model: this.constructor.modelName,
+            });
+            if (!metadata) metadata = new Increment({ model: this.constructor.modelName });
+
+            this.idx = metadata.idx;
+            metadata.latest = this._id;
+
+            metadata.idx++;
+            await metadata.save();
+        }
+    }
+
+    return async function () {
+        return await counter.apply(this);
+    };
+}
 
 const ParticipantSchema = new mongoose.Schema(
     {
         name: String,
         group_id: {
             type: mongoose.SchemaTypes.ObjectId,
-            get: v => v.toString(),
+            get: (v) => v.toString(),
             // alias: "group_id",
         },
 
         tournament_id: {
             type: mongoose.SchemaTypes.ObjectId,
-            get: v => v.toString(),
+            get: (v) => v.toString(),
             index: true,
             // alias: "tournament_id"
         },
@@ -38,21 +59,23 @@ const ParticipantSchema = new mongoose.Schema(
         toObject: { virtuals: true, getters: true },
     }
 );
+
 ParticipantSchema.plugin(mongooseLeanVirtuals);
 exports.ParticipantSchema = ParticipantSchema;
-const ParticipantResultSchema = new mongoose.Schema(
-    {
-        forfeit: Boolean,
-        name: String,
-        position: Number,
-        result: {
-            type: String,
-            enum: ["win", "draw", "loss"],
-        },
-        score: Number,
+
+const ParticipantResultSchema = new mongoose.Schema({
+    forfeit: Boolean,
+    name: String,
+    position: Number,
+    result: {
+        type: String,
+        enum: ["win", "draw", "loss"],
     },
-);
+    score: Number,
+});
+
 exports.ParticipantResultSchema = ParticipantResultSchema;
+
 const MatchGameSchema = new mongoose.Schema(
     {
         number: Number,
@@ -91,7 +114,9 @@ const MatchGameSchema = new mongoose.Schema(
         toObject: { virtuals: true },
     }
 );
+
 exports.MatchGameSchema = MatchGameSchema;
+
 const MatchSchema = new mongoose.Schema(
     {
         child_count: {
@@ -101,7 +126,7 @@ const MatchSchema = new mongoose.Schema(
             type: ObjectId,
             get: (v) => {
                 return v.toString();
-            }
+            },
         },
         number: Number,
         opponent1: ParticipantResultSchema,
@@ -110,11 +135,11 @@ const MatchSchema = new mongoose.Schema(
             type: ObjectId,
             get: (v) => {
                 return v.toString();
-            }
+            },
         },
         stage_id: {
             type: ObjectId,
-            get: v => v.toString(),
+            get: (v) => v.toString(),
         },
         status: {
             type: Number,
@@ -156,7 +181,7 @@ const StageSchema = new mongoose.Schema(
         tournament_id: {
             type: ObjectId,
             alias: "division",
-            get: (v) => v.toString()
+            get: (v) => v.toString(),
         },
         settings: {
             size: Number,
@@ -209,12 +234,12 @@ const RoundSchema = new mongoose.Schema(
     {
         group_id: {
             type: mongoose.SchemaTypes.ObjectId,
-            get: v => v.toString(),
+            get: (v) => v.toString(),
         },
         number: Number,
         stage_id: {
             type: mongoose.SchemaTypes.ObjectId,
-            get: v => v.toString(),
+            get: (v) => v.toString(),
         },
     },
     {
@@ -231,7 +256,7 @@ const GroupSchema = new mongoose.Schema(
         number: Number,
         stage_id: {
             type: mongoose.SchemaTypes.ObjectId,
-            get: v => v.toString(),
+            get: (v) => v.toString(),
         },
         options: {
             breakingCount: Number,
@@ -251,15 +276,26 @@ const TournamentSchema = new mongoose.Schema(
         groups: [GroupSchema],
         stages: [StageSchema],
         rounds: [RoundSchema],
+        idx: Number,
+        name: String,
     },
     {
         statics: {
-            findCurrent: async function () {
-                return await this.findOne({});
+            async findCurrent() {
+                const meta = await Increment.findOne({
+                    model: "Tournament",
+                });
+                const tournament = await this.findById(meta.latest);
+                return tournament;
             },
         },
         toJSON: { virtuals: true },
         toObject: { virtuals: true },
     }
 );
+
+
+
+TournamentSchema.pre("save", constructCounter());
+
 exports.TournamentSchema = TournamentSchema;
