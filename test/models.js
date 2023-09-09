@@ -51,9 +51,6 @@ const ParticipantResultSchema = new mongoose.Schema(
     {
         forfeit: Boolean,
         name: String,
-        id: {
-            type: ObjectId,
-        },
         position: Number,
         result: {
             type: String,
@@ -61,7 +58,6 @@ const ParticipantResultSchema = new mongoose.Schema(
         },
         score: Number,
     },
-    { _id: false }
 );
 exports.ParticipantResultSchema = ParticipantResultSchema;
 const MatchGameSchema = new mongoose.Schema(

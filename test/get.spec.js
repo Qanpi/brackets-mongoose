@@ -56,12 +56,12 @@ describe("Get child games", () => {
 });
 
 describe("Get final standings", () => {
-    const divisionId = new ObjectId().toString();
+    const tournamentId = new ObjectId().toString();
 
     it.only("should get the final standings for a single elimination stage with consolation final", async function() {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: "Example",
-            tournamentId: divisionId,
+            tournamentId: 0,
             type: "single_elimination",
             seeding: [
                 "Team 1",
@@ -76,9 +76,7 @@ describe("Get final standings", () => {
             settings: { consolationFinal: true },
         });
 
-        const stage = await this.manager.get.currentStage(divisionId);
         const matches = await this.storage.select("match", {stage_id: stage.id});
-        // const rounds = await this.storage.select("round", {stage_id: stage.id});
 
         assert.strictEqual(matches.length, 8);
 
@@ -92,6 +90,8 @@ describe("Get final standings", () => {
         }
 
         const finalStandings = await this.manager.get.finalStandings(stage.id);
+        const test = new ObjectId(0);
+        const participants = await this.storage.select("participant", {tournament_id: tournamentId});
 
         assert.deepEqual(finalStandings, [
             { id: 0, name: "Team 1", rank: 1 },
