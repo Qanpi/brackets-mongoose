@@ -89,7 +89,6 @@ describe("Get final standings", () => {
         }
 
         const finalStandings = await this.manager.get.finalStandings(stage.id);
-        const test = new ObjectId(0);
         const participants = await this.storage.select("participant", {tournament_id: tournamentId});
 
         assert.deepEqual(finalStandings, [
