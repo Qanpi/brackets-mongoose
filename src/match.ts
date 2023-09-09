@@ -136,8 +136,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
 
             match[path] = match[path].pull(...toDelete);
 
-            const test = await match.save();
-
+            await match.save();
             return true;
         }
         return false;

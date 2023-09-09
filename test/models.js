@@ -12,27 +12,19 @@ const mongooseLeanGetters = require("mongoose-lean-getters");
 //     this.property = new Types.ObjectId(v);
 // }
 
-function virtualProperty(property) {
-    return {
-        get() {
-            return this[property].toString();
-        },
-        set(v) {
-            this[property] = new Types.ObjectId(v);
-        }
-    };
-}
 
 const ParticipantSchema = new mongoose.Schema(
     {
         name: String,
         group_id: {
             type: mongoose.SchemaTypes.ObjectId,
+            get: v => v.toString(),
             // alias: "group_id",
         },
 
         tournament_id: {
             type: mongoose.SchemaTypes.ObjectId,
+            get: v => v.toString(),
             index: true,
             // alias: "tournament_id"
         },
@@ -42,10 +34,11 @@ const ParticipantSchema = new mongoose.Schema(
         //     group_id: virtualProperty("group"),
         //     tournament_id: virtualProperty("tournament"),
         // },
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
+        toJSON: { virtuals: true, getters: true },
+        toObject: { virtuals: true, getters: true },
     }
 );
+ParticipantSchema.plugin(mongooseLeanVirtuals);
 exports.ParticipantSchema = ParticipantSchema;
 const ParticipantResultSchema = new mongoose.Schema(
     {
@@ -99,24 +92,6 @@ const MatchGameSchema = new mongoose.Schema(
     }
 );
 exports.MatchGameSchema = MatchGameSchema;
-const GroupSchema = new mongoose.Schema(
-    {
-        number: Number,
-        stage: {
-            type: mongoose.SchemaTypes.ObjectId,
-        },
-        options: {
-            breakingCount: Number,
-        },
-    },
-    {
-        virtuals: {
-            stage_id: virtualProperty("stage"),
-        },
-        toObject: { virtuals: true },
-        toJSON: { virtuals: true },
-    }
-);
 const MatchSchema = new mongoose.Schema(
     {
         child_count: {
@@ -166,20 +141,22 @@ const MatchSchema = new mongoose.Schema(
         //     stage_id: virtualProperty("stage"),
         //     round_id: virtualProperty("round"),
         // },
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
+        toJSON: { virtuals: true, getters: true },
+        toObject: { virtuals: true, getters: true },
     }
 );
 MatchSchema.plugin(mongooseLeanVirtuals);
 MatchSchema.plugin(mongooseLeanGetters);
+
 exports.MatchSchema = MatchSchema;
 const StageSchema = new mongoose.Schema(
     {
         name: String,
         number: Number,
-        tournament: {
+        tournament_id: {
             type: ObjectId,
             alias: "division",
+            get: (v) => v.toString()
         },
         settings: {
             size: Number,
@@ -219,34 +196,53 @@ const StageSchema = new mongoose.Schema(
     },
     {
         virtuals: {
-            tournament_id: virtualProperty("tournament"),
+            // tournament_id: virtualProperty("tournament"),
         },
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
+        toJSON: { virtuals: true, getters: true },
+        toObject: { virtuals: true, getters: true },
     }
 );
 
 exports.StageSchema = StageSchema;
 
-
-
 const RoundSchema = new mongoose.Schema(
     {
-        group: {
+        group_id: {
             type: mongoose.SchemaTypes.ObjectId,
+            get: v => v.toString(),
         },
         number: Number,
-        stage: {
+        stage_id: {
             type: mongoose.SchemaTypes.ObjectId,
+            get: v => v.toString(),
         },
     },
     {
         virtuals: {
-            group_id: virtualProperty("group"),
-            stage_id: virtualProperty("stage"),
+            // group_id: virtualProperty("group"),
+            // stage_id: virtualProperty("stage"),
         },
-        toJSON: { virtuals: true },
-        toObject: { virtuals: true },
+        toJSON: { virtuals: true, getters: true },
+        toObject: { virtuals: true, getters: true },
+    }
+);
+const GroupSchema = new mongoose.Schema(
+    {
+        number: Number,
+        stage_id: {
+            type: mongoose.SchemaTypes.ObjectId,
+            get: v => v.toString(),
+        },
+        options: {
+            breakingCount: Number,
+        },
+    },
+    {
+        virtuals: {
+            // stage_id: virtualProperty("stage"),
+        },
+        toObject: { virtuals: true, getters: true },
+        toJSON: { virtuals: true, getters: true },
     }
 );
 

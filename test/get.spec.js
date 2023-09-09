@@ -9,7 +9,7 @@ const assert = chai.assert;
 
 describe("Get child games", () => {
     it("should get child games of a list of matches", async function() {
-        const tournamentId = new ObjectId();
+        const tournamentId = new ObjectId().toString();
 
         await this.manager.create.stage({
             name: "Example",
@@ -31,9 +31,9 @@ describe("Get child games", () => {
     });
 
     it("should get child games of a list of matches with some which do not have child games", async function() {
-        const tournamentId = new ObjectId();
+        const tournamentId = new ObjectId().toString();
 
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: "Example",
             tournamentId: tournamentId,
             type: "single_elimination",
@@ -41,7 +41,6 @@ describe("Get child games", () => {
             settings: { matchesChildCount: 2 },
         });
 
-        const stage = await this.manager.get.currentStage(tournamentId);
         const round = await this.manager.get.currentRound(stage.id);
         const currentMatches = await this.manager.get.currentMatches(stage.id);
 
@@ -61,7 +60,7 @@ describe("Get final standings", () => {
     it.only("should get the final standings for a single elimination stage with consolation final", async function() {
         const stage = await this.manager.create.stage({
             name: "Example",
-            tournamentId: 0,
+            tournamentId: tournamentId,
             type: "single_elimination",
             seeding: [
                 "Team 1",
