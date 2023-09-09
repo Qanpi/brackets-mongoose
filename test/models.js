@@ -56,37 +56,18 @@ const ParticipantSchema = new mongoose.Schema(
     {
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
-        id: false,
     }
 );
 
 ParticipantSchema.plugin(mongooseLeanGetters);
 ParticipantSchema.plugin(mongooseLeanVirtuals);
 
-ParticipantSchema.discriminator(
-    "ObjectId",
-    new mongoose.Schema(
-        {},
-        {
-            id: true,
-        }
-    )
-);
-
 ParticipantSchema.pre("save", constructCounter("id"));
-
-ParticipantSchema.discriminator(
-    "NumberId",
-    new mongoose.Schema({
-        id: Number,
-    })
-);
 
 exports.ParticipantSchema = ParticipantSchema;
 
 const ParticipantResultSchema = new mongoose.Schema(
     {
-        id: Number,
         forfeit: Boolean,
         name: String,
         position: Number,
@@ -96,9 +77,6 @@ const ParticipantResultSchema = new mongoose.Schema(
         },
         score: Number,
     },
-    {
-        id: false,
-    }
 );
 
 exports.ParticipantResultSchema = ParticipantResultSchema;
