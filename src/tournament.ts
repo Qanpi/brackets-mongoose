@@ -1,7 +1,15 @@
 import { DataTypes } from "brackets-manager";
-import { filter as _filter, isMatch, matches } from "lodash";
-import { Document, HydratedDocument, Model, Types } from "mongoose";
+import {
+    filter as _filter,
+    isMatch,
+    matches,
+    isMatchWith,
+    isEqual,
+    mapValues,
+} from "lodash";
+import { Document, HydratedDocument, Model, Query, Types } from "mongoose";
 import { isId, CustomId } from "./types";
+import { ObjectId } from "mongodb";
 
 // function isStageData(data: Partial<TSubData>): data is TStageData {
 //     return true;
@@ -14,6 +22,22 @@ import { isId, CustomId } from "./types";
 // function isRoundData(data: Partial<TSubData>): data is TRoundData {
 //     return true;
 // }
+
+function processIds(obj?: object | CustomId): object | string {
+    if (isId(obj)) return obj.toString();
+
+    return mapValues(obj, (v: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return v instanceof ObjectId ? v.toString() : v;
+    });
+}
+
+function stringToObjectIds(obj?: object): object {
+    return mapValues(obj, (v: any) => {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+        return v instanceof ObjectId ? v.toString() : v;
+    });
+}
 
 export type TTournamentTables = "round" | "group" | "stage";
 
@@ -32,7 +56,7 @@ export type TTournamentDocument = HydratedDocument<Document<CustomId>> & {
 };
 
 export type TTournamentModel = Model<any> & {
-    findCurrent: () => Promise<TTournamentDocument>;
+    findCurrent: () => Query<TTournamentDocument, TTournamentDocument>;
 };
 
 export default class Tournament<M extends TTournamentModel> {
@@ -97,18 +121,25 @@ export default class Tournament<M extends TTournamentModel> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
 
-        if (filter === undefined)
-            return tournament[path] as unknown as Promise<TTournamentSubData[]>;
-        else if (isId(filter)) {
-            return tournament[path].id(
-                filter
-            ) as unknown as Promise<TTournamentSubData>;
+        if (isId(filter)) {
+            return tournament[path].id(filter)?.toObject() as unknown as Promise<TTournamentSubData>;
         }
 
-        return _filter(
-            tournament[path].toObject(),
-            filter
-        ) as unknown as TTournamentSubData[];
+        let docs: Types.ArraySubdocument<CustomId>[];
+        if (filter === undefined) docs = tournament[path];
+        else {
+            docs = tournament[path].filter(d => 
+                isMatch(d, filter)
+                // isMatchWith(v, filter, (a, b) => {
+                //     if (a instanceof ObjectId) return a.equals(b);
+                //     else if (b instanceof ObjectId) return b.equals(a);
+                //     else return isEqual(a, b);
+                // })
+            );
+        }
+
+        const lean = docs.map(d => d.toObject());
+        return lean as TTournamentSubData[];
     }
 
     async delete(

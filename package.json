@@ -11,6 +11,7 @@
         "node": ">=16.20.1"
     },
     "dependencies": {
+        "@types/chai-as-promised": "^7.1.6",
         "brackets-model": "^1.5.0",
         "dotenv": "^16.3.1",
         "lodash-es": "^4.17.21",

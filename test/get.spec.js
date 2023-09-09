@@ -8,17 +8,6 @@ const ObjectId = Types.ObjectId;
 const assert = chai.assert;
 
 describe("Get child games", () => {
-    before(() => {
-        this.storage = new MongooseForBrackets(mongoose);
-        this.manager = new BracketsManager(this.storage, true);
-    });
-
-    beforeEach(async function() {
-        await this.storage.reset();
-        const Tournament = mongoose.model("Tournament");
-        await Tournament.create({name: "Mock Tournament"});
-    });
-
     it("should get child games of a list of matches", async function() {
         const tournamentId = new ObjectId();
 
@@ -67,10 +56,6 @@ describe("Get child games", () => {
 });
 
 describe("Get final standings", () => {
-    // beforeEach(() => {
-    //     this.storage.reset();
-    // });
-    
     const divisionId = new ObjectId();
 
     it.only("should get the final standings for a single elimination stage with consolation final", async function() {
@@ -92,7 +77,10 @@ describe("Get final standings", () => {
         });
 
         const stage = await this.manager.get.currentStage(divisionId);
-        const matches = await this.manager.get.currentMatches(stage.id);
+        const matches = await this.storage.select("match", {stage_id: stage.id});
+        // const rounds = await this.storage.select("round", {stage_id: stage.id});
+
+        assert.strictEqual(matches.length, 8);
 
         for (let i = 0; i < matches.length; i++) {
             await this.manager.update.match({
@@ -103,7 +91,7 @@ describe("Get final standings", () => {
             });
         }
 
-        const finalStandings = await this.manager.get.finalStandings(0);
+        const finalStandings = await this.manager.get.finalStandings(stage.id);
 
         assert.deepEqual(finalStandings, [
             { id: 0, name: "Team 1", rank: 1 },

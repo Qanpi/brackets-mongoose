@@ -33,8 +33,10 @@ exports.mochaHooks = {
         this.manager = new BracketsManager(this.storage, true);
     },
     beforeEach: async function() {
-        await this.storage.reset();
         const Tournament = mongoose.model("Tournament");
         await Tournament.create({name: "Mock Tournament"});
+    },
+    afterEach: async function() {
+        await this.storage.reset();
     }
 };

@@ -1,6 +1,6 @@
-const { default: mongoose, SchemaTypes } = require("mongoose");
+const { default: mongoose, SchemaTypes, Types } = require("mongoose");
 const ObjectId = SchemaTypes.ObjectId;
-const mongooseLeanVirtuals = require('mongoose-lean-virtuals');
+const mongooseLeanVirtuals = require("mongoose-lean-virtuals");
 // const {mergeWith} = require("lodash");
 
 const ParticipantSchema = new mongoose.Schema(
@@ -52,9 +52,9 @@ const MatchGameSchema = new mongoose.Schema(
             //lean queries
             parent_id: {
                 get() {
-                    if (this instanceof mongoose.Document) 
+                    if (this instanceof mongoose.Document)
                         return this.$parent()._id;
-                    
+
                     return mongooseLeanVirtuals.parent(this)._id;
                     // return "parent_id";
                     // return this.$parent()?._id;
@@ -63,9 +63,9 @@ const MatchGameSchema = new mongoose.Schema(
 
             stage_id: {
                 get() {
-                    if (this instanceof mongoose.Document) 
-                        return this.$parent().stage_id; 
-                    
+                    if (this instanceof mongoose.Document)
+                        return this.$parent().stage_id;
+
                     return mongooseLeanVirtuals.parent(this).stage_id;
                     // return "stage_id";
                     // return this.$parent().stage; //FIXME: not typesafe because circular ref
@@ -88,8 +88,16 @@ const GroupSchema = new mongoose.Schema(
         },
     },
     {
+        virtuals: {
+            id: {
+                get() {
+                    return this._id;
+                },
+            },
+        },
         toObject: { virtuals: true },
         toJSON: { virtuals: true },
+        id: false,
     }
 );
 const MatchSchema = new mongoose.Schema(
@@ -129,8 +137,16 @@ const MatchSchema = new mongoose.Schema(
         // },
     },
     {
+        virtuals: {
+            id: {
+                get() {
+                    return this._id;
+                },
+            },
+        },
         toJSON: { virtuals: true },
         toObject: { virtuals: true },
+        id: false,
     }
 );
 MatchSchema.plugin(mongooseLeanVirtuals);
@@ -141,7 +157,7 @@ const StageSchema = new mongoose.Schema(
         number: Number,
         tournament_id: {
             type: ObjectId,
-            alias: "division"
+            alias: "division",
         },
         settings: {
             size: Number,
@@ -179,7 +195,18 @@ const StageSchema = new mongoose.Schema(
             enum: ["round_robin", "single_elimination", "double_elimination"],
         },
     },
-    { toJSON: { virtuals: true }, toObject: { virtuals: true } }
+    {
+        virtuals: {
+            id: {
+                get() {
+                    return this._id;
+                },
+            },
+        },
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
+        id: false,
+    }
 );
 
 exports.StageSchema = StageSchema;
@@ -193,7 +220,18 @@ const RoundSchema = new mongoose.Schema(
             type: mongoose.SchemaTypes.ObjectId,
         },
     },
-    { toJSON: { virtuals: true }, toObject: { virtuals: true } }
+    {
+        virtuals: {
+            id: {
+                get() {
+                    return this._id;
+                },
+            },
+        },
+        toJSON: { virtuals: true },
+        toObject: { virtuals: true },
+        id: false,
+    }
 );
 
 const TournamentSchema = new mongoose.Schema(
