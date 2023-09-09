@@ -1,6 +1,7 @@
 import { DataTypes, OmitId } from "brackets-manager";
 import { Document, FilterQuery, Model} from "mongoose";
-import { isId, CustomId } from "./types";
+import { isId} from "./types";
+import { Id } from "brackets-model";
 
 export default class MongooseCRUD<
     M extends Model<any>,
@@ -20,8 +21,8 @@ export default class MongooseCRUD<
      *
      * @param data
      */
-    async insertOne(data: OmitId<DataTypes[T]>): Promise<CustomId> {
-        const result = (await this.model.create(data)) as Document<CustomId>;
+    async insertOne(data: OmitId<DataTypes[T]>): Promise<Id> {
+        const result = (await this.model.create(data)) as Document<Id>;
         return result._id || -1;
     }
 
@@ -35,7 +36,7 @@ export default class MongooseCRUD<
     }
 
     async select(
-        filter?: Partial<DataTypes[T]> | CustomId
+        filter?: Partial<DataTypes[T]> | Id
     ): Promise<DataTypes[T] | DataTypes[T][] | null> {
         if (!filter) {
             return (await this.model.find({}).lean({virtuals: true}).exec()) as unknown as Promise<
@@ -57,7 +58,7 @@ export default class MongooseCRUD<
     }
 
     async update(
-        filter: Partial<DataTypes[T]> | CustomId,
+        filter: Partial<DataTypes[T]> | Id,
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
         if (isId(filter)) {

@@ -7,7 +7,8 @@ import {
     Types,
 } from "mongoose";
 import MongooseCRUD from "./crud";
-import { CustomId, isId } from "./types";
+import { isId } from "./types";
+import { Id } from "brackets-model";
 import { isMatch } from "lodash";
 
 export enum MatchSubPaths {
@@ -16,9 +17,9 @@ export enum MatchSubPaths {
 
 export type TMatchTables = keyof typeof MatchSubPaths;
 
-export type TMatchDocument = HydratedDocument<Document<CustomId>> & {
+export type TMatchDocument = HydratedDocument<Document<Id>> & {
     [K in keyof Record<MatchSubPaths, string>]: Types.DocumentArray<
-        Types.ArraySubdocument<CustomId>
+        Types.ArraySubdocument<Id>
     >;
 };
 
@@ -30,7 +31,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
     async insertManySubdocs(
         table: TMatchTables,
         data: DataTypes[TMatchTables][]
-    ): Promise<CustomId | boolean> {
+    ): Promise<Id | boolean> {
         const path = MatchSubPaths[table];
 
         for (const game of data) {
@@ -49,7 +50,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
     async insertOneSubdoc(
         table: TMatchTables,
         data: DataTypes[TMatchTables]
-    ): Promise<CustomId> {
+    ): Promise<Id> {
         const path = MatchSubPaths[table];
 
         const match = (await this.model.findById(
@@ -64,7 +65,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
     }
 
     async update(
-        filter: CustomId | Partial<DataTypes["match"]>,
+        filter: Id | Partial<DataTypes["match"]>,
         data: DataTypes["match"] | Partial<DataTypes["match"]>
     ): Promise<boolean> {
         // if ("_doc" in data && "games" in data._doc) delete data["games"]; //ugly fix to prevent updates from modifying the value of nested subdoc array
@@ -74,7 +75,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
 
     async selectSubdocs(
         table: TMatchTables,
-        filter?: Partial<DataTypes[TMatchTables]> | CustomId
+        filter?: Partial<DataTypes[TMatchTables]> | Id
     ): Promise<DataTypes[TMatchTables] | DataTypes[TMatchTables][] | null> {
         if (!filter) {
             const games = (await this.model
@@ -112,7 +113,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
 
     async updateSubdocs(
         table: TMatchTables,
-        filter: Partial<DataTypes[TMatchTables]> | CustomId,
+        filter: Partial<DataTypes[TMatchTables]> | Id,
         data: Partial<DataTypes[TMatchTables]> | DataTypes["match"]
     ): Promise<boolean> {
         return false;
@@ -132,7 +133,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
 
             const toDelete = match[path].filter(
                 (d) => !isMatch(d, query)
-            ) as Types.DocumentArray<Types.ArraySubdocument<CustomId>>;
+            ) as Types.DocumentArray<Types.ArraySubdocument<Id>>;
 
             match[path] = match[path].pull(...toDelete);
 
