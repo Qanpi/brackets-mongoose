@@ -31,7 +31,7 @@ export default class MongooseCRUD<
      * @param data
      */
     async insertMany(data: OmitId<DataTypes[T]>[]): Promise<boolean> {
-        await this.model.insertMany(data);
+        await this.model.create(data, {ordered: true}); //not using insertMany because pre-save middleware wouldn't execute
         return true;
     }
 

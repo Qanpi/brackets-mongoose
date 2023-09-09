@@ -13,39 +13,44 @@ const { default: Increment } = require("./increment");
 //     this.property = new Types.ObjectId(v);
 // }
 
+async function counter() {
+    if (!this.isNew) return;
+
+    let metadata = await Increment.findOne({
+        model: this.constructor.modelName,
+    });
+    if (!metadata)
+        metadata = new Increment({ model: this.constructor.modelName });
+
+    this.id = metadata.idx;
+    metadata.latest = this._id;
+
+    metadata.idx++;
+    return await metadata.save();
+}
+
 function constructCounter() {
-    async function counter() {
-        if (this.isNew) {
-            let metadata = await Increment.findOne({
-                model: this.constructor.modelName,
-            });
-            if (!metadata) metadata = new Increment({ model: this.constructor.modelName });
-
-            this.idx = metadata.idx;
-            metadata.latest = this._id;
-
-            metadata.idx++;
-            await metadata.save();
-        }
-    }
-
-    return async function () {
-        return await counter.apply(this);
+    return function () {
+        return counter.apply(this);
     };
 }
 
 const ParticipantSchema = new mongoose.Schema(
     {
+        id: Number,
+
         name: String,
         group_id: {
             type: mongoose.SchemaTypes.ObjectId,
             get: (v) => v.toString(),
+            // set: v => new Types.ObjectId(v),
             // alias: "group_id",
         },
 
         tournament_id: {
             type: mongoose.SchemaTypes.ObjectId,
             get: (v) => v.toString(),
+            // set: v => new Types.ObjectId(v),
             index: true,
             // alias: "tournament_id"
         },
@@ -57,10 +62,30 @@ const ParticipantSchema = new mongoose.Schema(
         // },
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
+        id: false,
     }
 );
 
+ParticipantSchema.pre("save", async function () {
+    if (this.isNew) {
+        let metadata = await Increment.findOne({
+            model: this.constructor.modelName,
+        });
+
+        if (!metadata)
+            metadata = new Increment({ model: this.constructor.modelName });
+
+        this.id = metadata.idx;
+        metadata.latest = this._id;
+
+        metadata.idx++;
+        await metadata.save();
+    }
+});
+
+ParticipantSchema.plugin(mongooseLeanGetters);
 ParticipantSchema.plugin(mongooseLeanVirtuals);
+
 exports.ParticipantSchema = ParticipantSchema;
 
 const ParticipantResultSchema = new mongoose.Schema({
@@ -293,8 +318,6 @@ const TournamentSchema = new mongoose.Schema(
         toObject: { virtuals: true },
     }
 );
-
-
 
 TournamentSchema.pre("save", constructCounter());
 
