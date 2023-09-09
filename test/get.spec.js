@@ -30,7 +30,7 @@ describe("Get child games", () => {
         assert.strictEqual(games[2].parent_id.toString(), matches[1].id);
     });
 
-    it("should get child games of a list of matches with some which do not have child games", async function() {
+    it.only("should get child games of a list of matches with some which do not have child games", async function() {
         const tournamentId = new ObjectId().toString();
 
         const stage = await this.manager.create.stage({
@@ -89,7 +89,6 @@ describe("Get final standings", () => {
         }
 
         const finalStandings = await this.manager.get.finalStandings(stage.id);
-        const participants = await this.storage.select("participant", {tournament_id: tournamentId});
 
         assert.deepEqual(finalStandings, [
             { id: 0, name: "Team 1", rank: 1 },

@@ -223,9 +223,11 @@ export default class MongooseForBrackets implements CrudInterface {
     }
 
     async reset(): Promise<boolean> {
-        await mongoose.model("Tournament").collection.drop();
-        await mongoose.model("Participant").collection.drop();
-        await mongoose.model("Match").collection.drop();
-        return true;
+        try {
+            await mongoose.connection.dropDatabase();
+            return true;
+        } catch (err) {
+            return false;
+        }
     }
 }

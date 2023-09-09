@@ -66,22 +66,7 @@ const ParticipantSchema = new mongoose.Schema(
     }
 );
 
-ParticipantSchema.pre("save", async function () {
-    if (this.isNew) {
-        let metadata = await Increment.findOne({
-            model: this.constructor.modelName,
-        });
-
-        if (!metadata)
-            metadata = new Increment({ model: this.constructor.modelName });
-
-        this.id = metadata.idx;
-        metadata.latest = this._id;
-
-        metadata.idx++;
-        await metadata.save();
-    }
-});
+ParticipantSchema.pre("save", constructCounter());
 
 ParticipantSchema.plugin(mongooseLeanGetters);
 ParticipantSchema.plugin(mongooseLeanVirtuals);
@@ -89,6 +74,7 @@ ParticipantSchema.plugin(mongooseLeanVirtuals);
 exports.ParticipantSchema = ParticipantSchema;
 
 const ParticipantResultSchema = new mongoose.Schema({
+    id: Number,
     forfeit: Boolean,
     name: String,
     position: Number,
@@ -97,6 +83,8 @@ const ParticipantResultSchema = new mongoose.Schema({
         enum: ["win", "draw", "loss"],
     },
     score: Number,
+}, {
+    id: false,
 });
 
 exports.ParticipantResultSchema = ParticipantResultSchema;
