@@ -8,7 +8,7 @@ const tournamentId = new Types.ObjectId().toString();
 
 describe('BYE handling', function () {
     it('should propagate BYEs through the brackets', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example with BYEs',
             tournamentId: tournamentId,
             type: 'double_elimination',
@@ -33,7 +33,7 @@ describe('BYE handling', function () {
     });
 
     it('should handle incomplete seeding during creation', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example with BYEs',
             tournamentId: tournamentId,
             type: 'double_elimination',
@@ -55,7 +55,7 @@ describe('BYE handling', function () {
     });
 
     it('should balance BYEs in the seeding', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example with BYEs',
             tournamentId: tournamentId,
             type: 'double_elimination',
@@ -79,7 +79,7 @@ describe('BYE handling', function () {
 
 describe('Position checks', function () {
     before(async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example with double grand final',
             tournamentId: tournamentId,
             type: 'double_elimination',
@@ -122,7 +122,7 @@ describe('Position checks', function () {
 
 describe('Special cases', function () {
 
-    it('should create a stage and add participants IDs in seeding', async function () {
+    it.only('should create a stage and add participants IDs in seeding', async function () {
         const teams = [
             'Team 1', 'Team 2',
             'Team 3', 'Team 4',
@@ -131,14 +131,14 @@ describe('Special cases', function () {
         ];
 
         const participants = teams.map(name => ({
-            tournament_id: 0,
+            tournament_id: tournamentId,
             name,
         }));
 
         // Simulation of external database filling for participants.
         await this.storage.insert('participant', participants);
 
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -146,7 +146,7 @@ describe('Special cases', function () {
         });
 
         // Update seeding with already existing IDs.
-        await this.manager.update.seeding(0, [0, 1, 2, 3, 4, 5, 6, 7]);
+        await this.manager.update.seeding(stage.id, [0, 1, 2, 3, 4, 5, 6, 7]);
 
         assert.strictEqual((await this.storage.select('match', 0)).opponent1.id, 0);
     });
@@ -205,7 +205,7 @@ describe('Special cases', function () {
 
 describe('Update match child count', function () {
     beforeEach(async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -262,7 +262,7 @@ describe('Update match child count', function () {
 
 describe('Seeding and ordering in elimination', function () {
     beforeEach(async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Amateur',
             tournamentId: tournamentId,
             type: 'double_elimination',
@@ -381,7 +381,7 @@ describe('Best-Of series matches completion', function () {
 
 
     it('should end Bo1 matches', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -400,7 +400,7 @@ describe('Best-Of series matches completion', function () {
     });
 
     it('should end Bo2 matches in round-robin stage', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'round_robin',
@@ -422,7 +422,7 @@ describe('Best-Of series matches completion', function () {
     });
 
     it('should throw if a BoX match has a tie in an elimination stage', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -441,7 +441,7 @@ describe('Best-Of series matches completion', function () {
     });
 
     it('should end Bo3 matches', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -470,7 +470,7 @@ describe('Best-Of series matches completion', function () {
     });
 
     it('should let the last match be played even if not necessary', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -497,7 +497,7 @@ describe('Best-Of series matches completion', function () {
     });
 
     it('should end Bo5 matches', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -539,7 +539,7 @@ describe('Best-Of series matches completion', function () {
     });
 
     it('should handle match auto-win against a BYE after a BoX series', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -563,7 +563,7 @@ describe('Best-Of series matches completion', function () {
 describe('Reset match and match games', function () {
 
     it('should reset results of a match', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -610,7 +610,7 @@ describe('Reset match and match games', function () {
     });
 
     it('should throw when at least one of the following match is locked', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -642,7 +642,7 @@ describe('Reset match and match games', function () {
     });
 
     it('should reset results of a match game', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -673,7 +673,7 @@ describe('Reset match and match games', function () {
 describe('Import / export', function () {
 
     it('should import data in the this.storage', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -716,7 +716,7 @@ describe('Import / export', function () {
     it('should import data in the this.storage with normalized IDs', async function () {
         await this.storage.insert('participant', { name: 'Unused team' });
 
-        await this.manager.create.stage({
+        const stage1 = await this.manager.create.stage({
             name: 'Example 1',
             tournamentId: tournamentId,
             type: 'round_robin',
@@ -727,7 +727,7 @@ describe('Import / export', function () {
             },
         });
 
-        await this.manager.create.stage({
+        const stage2 = await this.manager.create.stage({
             name: 'Example 2',
             tournamentId: tournamentId,
             type: 'single_elimination',
@@ -738,15 +738,15 @@ describe('Import / export', function () {
             },
         });
 
-        const initialData = await this.manager.get.stageData(1);
+        const initialData = await this.manager.get.stageData(stage2.id);
 
-        assert.strictEqual(initialData.stage[0].id, 1);
-        assert.deepEqual(initialData.participant[0], { id: 1, tournament_id: 0, name: 'Team 1' });
-        assert.deepEqual(initialData.group[0], { id: 1, stage_id: 1, number: 1 });
-        assert.deepEqual(initialData.round[0], { id: 3, stage_id: 1, group_id: 1, number: 1 });
+        assert.strictEqual(initialData.stage[0].id, stage2.id);
+        assert.deepEqual(initialData.participant[0], { id: 1, tournament_id: tournamentId, name: 'Team 1' });
+        assert.deepEqual(initialData.group[0], { id: 1, stage_id: stage2.id, number: 1 });
+        assert.deepEqual(initialData.round[0], { id: 3, stage_id: stage2.id, group_id: 1, number: 1 });
         assert.deepEqual(initialData.match[0], {
             id: 6,
-            stage_id: 1,
+            stage_id: stage2.id,
             group_id: 1,
             round_id: 3,
             opponent1: { id: 5, position: 1 },
@@ -758,7 +758,7 @@ describe('Import / export', function () {
         assert.deepEqual(initialData.match_game[0], {
             id: 6,
             number: 1,
-            stage_id: 1,
+            stage_id: stage2.id,
             parent_id: 6,
             status: 2,
             opponent1: { id: 5 },
@@ -767,15 +767,15 @@ describe('Import / export', function () {
 
         await this.manager.import(initialData, true);
 
-        const data = await this.manager.get.stageData(0);
+        const data = await this.manager.get.stageData(stage1.id);
 
-        assert.strictEqual(data.stage[0].id, 0);
-        assert.deepEqual(data.participant[0], { id: 0, tournament_id: 0, name: 'Team 1' });
-        assert.deepEqual(data.group[0], { id: 0, stage_id: 0, number: 1 });
-        assert.deepEqual(data.round[0], { id: 0, stage_id: 0, group_id: 0, number: 1 });
+        assert.strictEqual(data.stage[0].id, stage1.id);
+        assert.deepEqual(data.participant[0], { id: 0, tournament_id: tournamentId, name: 'Team 1' });
+        assert.deepEqual(data.group[0], { id: 0, stage_id: stage1.id, number: 1 });
+        assert.deepEqual(data.round[0], { id: 0, stage_id: stage1.id, group_id: 0, number: 1 });
         assert.deepEqual(data.match[0], {
             id: 0,
-            stage_id: 0,
+            stage_id: stage1.id,
             group_id: 0,
             round_id: 0,
             opponent1: { id: 4, position: 1 },
@@ -787,7 +787,7 @@ describe('Import / export', function () {
         assert.deepEqual(data.match_game[0], {
             id: 0,
             number: 1,
-            stage_id: 0,
+            stage_id: stage1.id,
             parent_id: 0,
             status: 2,
             opponent1: { id: 4 },
@@ -796,7 +796,7 @@ describe('Import / export', function () {
     });
 
     it('should export data from the this.storage', async function () {
-        await this.manager.create.stage({
+        const stage = await this.manager.create.stage({
             name: 'Example',
             tournamentId: tournamentId,
             type: 'single_elimination',
