@@ -56,18 +56,37 @@ const ParticipantSchema = new mongoose.Schema(
     {
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
+        id: false,
     }
 );
 
 ParticipantSchema.plugin(mongooseLeanGetters);
 ParticipantSchema.plugin(mongooseLeanVirtuals);
 
+ParticipantSchema.discriminator(
+    "ParticipantObjectId",
+    new mongoose.Schema(
+        {},
+        {
+            id: true,
+        }
+    )
+);
+
 ParticipantSchema.pre("save", constructCounter("id"));
+
+ParticipantSchema.discriminator(
+    "ParticipantNumberId",
+    new mongoose.Schema({
+        id: Number,
+    })
+);
 
 exports.ParticipantSchema = ParticipantSchema;
 
 const ParticipantResultSchema = new mongoose.Schema(
     {
+        id: Number,
         forfeit: Boolean,
         name: String,
         position: Number,
@@ -77,7 +96,12 @@ const ParticipantResultSchema = new mongoose.Schema(
         },
         score: Number,
     },
+    {
+        id: false,
+    }
 );
+
+// ParticipantResultSchema.discriminator()
 
 exports.ParticipantResultSchema = ParticipantResultSchema;
 
@@ -96,9 +120,9 @@ const MatchGameSchema = new mongoose.Schema(
             parent_id: {
                 get() {
                     if (this instanceof mongoose.Document)
-                        return this.$parent()._id;
+                        return this.$parent().id;
 
-                    return mongooseLeanVirtuals.parent(this)._id;
+                    return mongooseLeanVirtuals.parent(this).id;
                     // return "parent_id";
                     // return this.$parent()?._id;
                 },
@@ -150,35 +174,39 @@ const MatchSchema = new mongoose.Schema(
             type: Number,
         },
         games: [MatchGameSchema],
-        // team1: {
-        //     team: {
-        //         type: mongoose.SchemaTypes.ObjectId,
-        //         ref: collections.teams.id
-        //     },
-        //     scored: {type: Number}
-        // },
-        // team2: {
-        //     team: {
-        //         type: mongoose.SchemaTypes.ObjectId,
-        //         ref: collections.teams.id
-        //     },
-        //     scored: {type: Number}
-        // },
+
     },
     {
-        // virtuals: {
-        //     group_id: virtualProperty("group"),
-        //     stage_id: virtualProperty("stage"),
-        //     round_id: virtualProperty("round"),
-        // },
+
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
+        id: false,
     }
 );
 MatchSchema.plugin(mongooseLeanVirtuals);
 MatchSchema.plugin(mongooseLeanGetters);
 
+MatchSchema.discriminator(
+    "MatchObjectId",
+    new mongoose.Schema(
+        {},
+        {
+            id: true,
+        }
+    )
+);
+
+MatchSchema.pre("save", constructCounter("id"));
+
+MatchSchema.discriminator(
+    "MatchNumberId",
+    new mongoose.Schema({
+        id: Number,
+    })
+);
+
 exports.MatchSchema = MatchSchema;
+
 const StageSchema = new mongoose.Schema(
     {
         name: String,

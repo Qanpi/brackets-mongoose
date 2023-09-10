@@ -37,9 +37,9 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
         for (const game of data) {
             //TODO: could potentially sort and batch this but maybe overkill
             //or just aggregate somehow
-            const match = (await this.model.findById(
-                game.parent_id
-            )) as TMatchDocument;
+            const match = (await this.model.findOne({
+                id: game.parent_id,
+            })) as TMatchDocument;
             match[path].push(game);
 
             await match.save();
@@ -53,15 +53,15 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
     ): Promise<Id> {
         const path = MatchSubPaths[table];
 
-        const match = (await this.model.findById(
-            data.parent_id
-        )) as TMatchDocument;
+        const match = (await this.model.findOne({
+            id: data.parent_id,
+        })) as TMatchDocument;
 
         const game = match.games.create(data);
         match[path].push(game);
 
         await match.save();
-        return game._id?.toString() || -1;
+        return (game.id as Id) || -1;
     }
 
     async update(
@@ -101,21 +101,24 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
             return match?.games.id(filter) as unknown as Promise<
                 DataTypes[TMatchTables]
             >;
-        } else if (filter?.parent_id) {
-            const match = (await this.model.findById(
-                filter.parent_id
-            )) as TMatchDocument;
-            return match.games.toObject() as unknown as DataTypes[TMatchTables];
         }
 
-        return null;
+        const { parent_id, ...gameFilter } = filter;
+        const match = (await this.model.findOne({
+            id: parent_id,
+        })) as TMatchDocument;
+
+        const games = match.games.filter((d) => isMatch(d, gameFilter));
+        return games.map((g) => g.toObject()) as DataTypes[TMatchTables][];
     }
 
-    async updateSubdocs(
-        table: TMatchTables,
+    async updateMatchGames(
         filter: Partial<DataTypes[TMatchTables]> | Id,
         data: Partial<DataTypes[TMatchTables]> | DataTypes["match"]
     ): Promise<boolean> {
+        // if (isId(filter)) {
+
+        // }
         return false;
     }
 
@@ -125,14 +128,15 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
     ): Promise<boolean> {
         const path = MatchSubPaths[table];
 
+
         if (filter) {
-            const { parent_id, ...query } = filter;
-            const match = (await this.model.findById(
-                parent_id
-            )) as TMatchDocument;
+            const { parent_id, ...gameFilter } = filter;
+            const match = (await this.model.findOne({
+                id: parent_id,
+            })) as TMatchDocument;
 
             const toDelete = match[path].filter(
-                (d) => !isMatch(d, query)
+                (d) => isMatch(d, gameFilter)
             ) as Types.DocumentArray<Types.ArraySubdocument<Id>>;
 
             match[path] = match[path].pull(...toDelete);
@@ -140,6 +144,7 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
             await match.save();
             return true;
         }
+
         return false;
     }
 }

@@ -24,8 +24,8 @@ export default class MongooseForBrackets implements CrudInterface {
         this.tournament = new Tournament(
             mongoose.model("Tournament") as TTournamentModel
         );
-        this.participant = new Participant(mongoose.model("Participant"));
-        this.match = new Match(mongoose.model("Match"));
+        this.participant = new Participant(mongoose.model("Participant").discriminators!["ParticipantNumberId"]);
+        this.match = new Match(mongoose.model("Match").discriminators!["MatchNumberId"]);
     }
 
     insert<T extends keyof DataTypes>(
@@ -161,7 +161,7 @@ export default class MongooseForBrackets implements CrudInterface {
             case Tables.Match:
                 return this.match.update(filter, data);
             case Tables.MatchGame:
-                return this.match.updateSubdocs(table, filter, data);
+                return this.match.updateMatchGames(filter, data);
             default:
                 return false;
         }
