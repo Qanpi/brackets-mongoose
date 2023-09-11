@@ -7,7 +7,7 @@ const assert = chai.assert;
 const tournamentId = new Types.ObjectId().toString();
 
 describe("BYE handling", function () {
-    it.only("should propagate BYEs through the brackets", async function () {
+    it("should propagate BYEs through the brackets", async function () {
         const stage = await this.manager.create.stage({
             name: "Example with BYEs",
             tournamentId: tournamentId,
@@ -119,7 +119,7 @@ describe("BYE handling", function () {
 });
 
 describe("Position checks", function () {
-    before(async function () {
+    beforeEach(async function () {
         const stage = await this.manager.create.stage({
             name: "Example with double grand final",
             tournamentId: tournamentId,
@@ -420,7 +420,7 @@ describe("Seeding and ordering in elimination", function () {
         assert.strictEqual(finalRoundMatchLB.opponent1.position, 1);
     });
 
-    it("should update the orderings in rounds", async function () {
+    it.only("should update the orderings in rounds", async function () {
         let firstRoundMatchWB = await this.storage.select("match", 0);
 
         // Inner outer before changing.

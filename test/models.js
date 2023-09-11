@@ -319,6 +319,7 @@ const RoundSchema = new mongoose.Schema(
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
         id: false,
+        _id: false,
     }
 );
 
@@ -326,16 +327,29 @@ RoundSchema.discriminator("ObjectId", new mongoose.Schema({}, { id: true }));
 
 RoundSchema.discriminator(
     "NumberId",
-    new mongoose.Schema({
-        id: {
-            type: Number,
-            default: function () {
-                return this.parent().rounds.length;
+    new mongoose.Schema(
+        {
+            _id: {
+                type: Number,
+                default: function () {
+                    return this.parent().rounds.length;
+                },
             },
+            group_id: Number,
+            stage_id: Number,
         },
-        group_id: Number,
-        stage_id: Number,
-    })
+
+        {
+            id: false,
+            virtuals: {
+                id: {
+                    get() {
+                        return this._id;
+                    },
+                },
+            },
+        }
+    )
 );
 
 const GroupSchema = new mongoose.Schema(
@@ -353,6 +367,7 @@ const GroupSchema = new mongoose.Schema(
         toObject: { virtuals: true, getters: true },
         toJSON: { virtuals: true, getters: true },
         id: false,
+        _id: false,
     }
 );
 
@@ -360,15 +375,27 @@ GroupSchema.discriminator("ObjectId", new mongoose.Schema({}, { id: true }));
 
 GroupSchema.discriminator(
     "NumberId",
-    new mongoose.Schema({
-        stage_id: Number,
-        id: {
-            type: Number,
-            default: function () {
-                return this.parent().groups.length;
+    new mongoose.Schema(
+        {
+            stage_id: Number,
+            _id: {
+                type: Number,
+                default: function () {
+                    return this.parent().groups.length;
+                },
             },
         },
-    })
+        {
+            id: false,
+            virtuals: {
+                id: {
+                    get() {
+                        return this._id;
+                    },
+                },
+            },
+        }
+    )
 );
 
 const TournamentSchema = new mongoose.Schema(
