@@ -1,10 +1,9 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
-import { Id } from "brackets-model";
-import { Model } from "mongoose";
-import Match, { TMatchSubData } from "./match";
+import mongoose, { Model, Mongoose } from "mongoose";
 import Participant from "./participant";
-import Tournament from "./tournament";
-import { TTournamentModel, TTournamentSubData } from "./types";
+import Tournament, { TTournamentModel } from "./tournament";
+import Match from "./match";
+import { Id } from "brackets-model";
 
 enum Tables {
     Participant = "participant",
@@ -15,24 +14,18 @@ enum Tables {
     MatchGame = "match_game",
 }
 
-export default class MongooseForBrackets<
-    TournamentModel extends TTournamentModel,
-    ParticipantModel extends Model<any>,
-    MatchModel extends Model<any>
-> implements CrudInterface
-{
-    private tournament: Tournament<TournamentModel>;
-    private participant: Participant<ParticipantModel, Tables.Participant>;
-    private match: Match<MatchModel, Tables.Match, Tables.MatchGame>;
+export default class MongooseForBrackets implements CrudInterface {
+    private tournament: Tournament<TTournamentModel>;
+    private participant: Participant;
+    private match: Match;
 
-    constructor(
-        tournamentModel: TournamentModel,
-        participantModel: ParticipantModel,
-        matchModel: MatchModel
-    ) {
-        this.tournament = new Tournament(tournamentModel);
-        this.participant = new Participant(participantModel);
-        this.match = new Match(matchModel);
+    constructor(mongoose: Mongoose) {
+        //FIXME: don't rely on magic strings
+        this.tournament = new Tournament(
+            mongoose.model("Tournament") as TTournamentModel
+        );
+        this.participant = new Participant(mongoose.model("Participant").discriminators!["ParticipantNumberId"]);
+        this.match = new Match(mongoose.model("Match").discriminators!["MatchNumberId"]);
     }
 
     insert<T extends keyof DataTypes>(
@@ -64,12 +57,18 @@ export default class MongooseForBrackets<
                 if (Array.isArray(data)) {
                     return this.tournament.insertMany(
                         table,
-                        data as unknown as TTournamentSubData[]
+                        data as unknown as DataTypes[
+                            | Tables.Stage
+                            | Tables.Group
+                            | Tables.Round][]
                     );
                 } else {
                     return this.tournament.insertOne(
                         table,
-                        data as unknown as TTournamentSubData
+                        data as unknown as DataTypes[
+                            | Tables.Stage
+                            | Tables.Group
+                            | Tables.Round]
                     );
                 }
             case Tables.Match:
@@ -162,7 +161,7 @@ export default class MongooseForBrackets<
             case Tables.Match:
                 return this.match.update(filter, data);
             case Tables.MatchGame:
-                return this.match.updateSubdocs(table, filter, data);
+                return this.match.updateMatchGames(filter, data);
             default:
                 return false;
         }
@@ -188,38 +187,47 @@ export default class MongooseForBrackets<
                 return this.match.delete(filter);
             case Tables.MatchGame:
                 return this.match.deleteSubdocs(table, filter);
-                // if (!filter) {
-                //     return Match.updateMany({}, { $set: { games: undefined } })
-                //         .exec()
-                //         .then(() => true)
-                //         .catch((err) => {
-                //             console.error(err);
-                //             return false;
-                //         });
-                // }
+            // if (!filter) {
+            //     return Match.updateMany({}, { $set: { games: undefined } })
+            //         .exec()
+            //         .then(() => true)
+            //         .catch((err) => {
+            //             console.error(err);
+            //             return false;
+            //         });
+            // }
 
-                // return Match.updateMany(
-                //     {},
-                //     { $set: { "games.$[elem]": undefined } },
-                //     {
-                //         arrayFilters: [
-                //             {
-                //                 elem: {
-                //                     filter,
-                //                 },
-                //             },
-                //         ],
-                //     }
-                // )
-                //     .exec()
-                //     .then(() => true)
-                //     .catch((err) => {
-                //         console.error(err);
-                //         return false;
-                //     });
+            // return Match.updateMany(
+            //     {},
+            //     { $set: { "games.$[elem]": undefined } },
+            //     {
+            //         arrayFilters: [
+            //             {
+            //                 elem: {
+            //                     filter,
+            //                 },
+            //             },
+            //         ],
+            //     }
+            // )
+            //     .exec()
+            //     .then(() => true)
+            //     .catch((err) => {
+            //         console.error(err);
+            //         return false;
+            //     });
 
             default:
                 return false;
+        }
+    }
+
+    async reset(): Promise<boolean> {
+        try {
+            await mongoose.connection.dropDatabase();
+            return true;
+        } catch (err) {
+            return false;
         }
     }
 }

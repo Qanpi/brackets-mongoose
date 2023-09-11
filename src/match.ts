@@ -1,7 +1,15 @@
 import { DataTypes } from "brackets-manager";
+import {
+    Document,
+    HydratedDocument,
+    Model,
+    SchemaTypes,
+    Types,
+} from "mongoose";
+import MongooseCRUD from "./crud";
+import { isId } from "./types";
 import { Id } from "brackets-model";
-import { Document, HydratedDocument, Model, ObjectId, Types } from "mongoose";
-import Participant from "./participant";
+import { isMatch } from "lodash";
 
 export enum MatchSubPaths {
     match_game = "games",
@@ -9,86 +17,136 @@ export enum MatchSubPaths {
 
 export type TMatchTables = keyof typeof MatchSubPaths;
 
-export type TMatchDocument = HydratedDocument<Document<ObjectId>> & {
+export type TMatchDocument = HydratedDocument<Document<Id>> & {
     [K in keyof Record<MatchSubPaths, string>]: Types.DocumentArray<
-        Types.ArraySubdocument<ObjectId>
+        Types.ArraySubdocument<Id>
     >;
 };
 
-export default class Match<
-    M extends Model<any>,
-    T extends keyof DataTypes,
-    S extends TMatchTables
-> extends Participant<M, T> {
-    constructor(model: M) {
+export default class Match extends MongooseCRUD<Model<any>, "match"> {
+    constructor(model: Model<any>) {
         super(model);
     }
 
     async insertManySubdocs(
         table: TMatchTables,
-        data: DataTypes[S][]
+        data: DataTypes[TMatchTables][]
     ): Promise<Id | boolean> {
         const path = MatchSubPaths[table];
 
-        try {
-            for (const game of data) {
-                //TODO: could potentially sort and batch this but maybe overkill
-                //or just aggregate somehow
-                const match = (await this.model.findById(
-                    game.parent_id
-                )) as TMatchDocument;
-                match[path].push(game);
+        for (const game of data) {
+            //TODO: could potentially sort and batch this but maybe overkill
+            //or just aggregate somehow
+            const match = (await this.model.findOne({
+                id: game.parent_id,
+            })) as TMatchDocument;
+            match[path].push(game);
 
-                await match.save();
-            }
-            return true;
-        } catch (err) {
-            console.error(err);
-            return false;
+            await match.save();
         }
+        return true;
     }
 
     async insertOneSubdoc(
         table: TMatchTables,
-        data: DataTypes[S]
+        data: DataTypes[TMatchTables]
     ): Promise<Id> {
         const path = MatchSubPaths[table];
 
-        try {
-            const match = (await this.model.findById(
-                data.parent_id
-            )) as TMatchDocument;
+        const match = (await this.model.findOne({
+            id: data.parent_id,
+        })) as TMatchDocument;
 
-            const game = match.games.create(data);
-            match[path].push(game);
+        const game = match.games.create(data);
+        match[path].push(game);
 
-            await match.save();
-            return game._id?.toString() || -1;
-        } catch (err) {
-            console.error(err);
-            return -1;
-        }
+        await match.save();
+        return (game.id as Id) || -1;
+    }
+
+    async update(
+        filter: Id | Partial<DataTypes["match"]>,
+        data: DataTypes["match"] | Partial<DataTypes["match"]>
+    ): Promise<boolean> {
+        //prevent match from updating its games back after deleting them 
+        for (const [, v] of Object.entries(MatchSubPaths)) 
+            if (v in data) delete data[v]; 
+        
+        return await super.update(filter, data);
     }
 
     async selectSubdocs(
         table: TMatchTables,
-        filter?: Partial<DataTypes[S]> | Id
-    ): Promise<DataTypes[S] | DataTypes[S][] | null> {
-        return null;
+        filter?: Partial<DataTypes[TMatchTables]> | Id
+    ): Promise<DataTypes[TMatchTables] | DataTypes[TMatchTables][] | null> {
+        if (!filter) {
+            const games = (await this.model
+                .aggregate([
+                    {
+                        $unwind: "$games",
+                    },
+                    {
+                        $replaceRoot: {
+                            newRoot: "$games",
+                        },
+                    },
+                    // {
+                    //     $match: filter ? filter : {},
+                    // },
+                ])
+                .exec()) as unknown as DataTypes[TMatchTables][];
+            return games;
+        } else if (isId(filter)) {
+            const match = (await this.model.findOne({
+                "games.id": filter,
+            })) as TMatchDocument;
+            return match?.games.id(filter) as unknown as Promise<
+                DataTypes[TMatchTables]
+            >;
+        }
+
+        const { parent_id, ...gameFilter } = filter;
+        const match = (await this.model.findOne({
+            id: parent_id,
+        })) as TMatchDocument;
+
+        const games = match.games.filter((d) => isMatch(d, gameFilter));
+        return games.map((g) => g.toObject()) as DataTypes[TMatchTables][];
     }
 
-    async updateSubdocs(
-        table: TMatchTables,
-        filter: Partial<DataTypes[S]> | Id,
-        data: Partial<DataTypes[S]> | DataTypes[T]
+    async updateMatchGames(
+        filter: Partial<DataTypes[TMatchTables]> | Id,
+        data: Partial<DataTypes[TMatchTables]> | DataTypes["match"]
     ): Promise<boolean> {
+        // if (isId(filter)) {
+
+        // }
         return false;
     }
 
     async deleteSubdocs(
         table: TMatchTables,
-        filter?: Partial<DataTypes[S]>
+        filter?: Partial<DataTypes[TMatchTables]>
     ): Promise<boolean> {
+        const path = MatchSubPaths[table];
+
+
+        if (filter) {
+            const { parent_id, ...gameFilter } = filter;
+            const match = (await this.model.findOne({
+                id: parent_id,
+            })) as TMatchDocument;
+
+            const toDelete = match[path].filter(
+                (d) => isMatch(d, gameFilter)
+            ) as Types.DocumentArray<Types.ArraySubdocument<Id>>;
+
+            match[path] = match[path].pull(...toDelete);
+
+            await match.save();
+            return true;
+        }
+
         return false;
     }
 }

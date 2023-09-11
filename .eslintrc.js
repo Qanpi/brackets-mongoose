@@ -22,20 +22,20 @@ module.exports = {
     ],
     rules: {
         'curly': ['error', 'multi-or-nest'],
-        'brace-style': ['error', '1tbs'],
+        // 'brace-style': ['error', '1tbs'],
         'eqeqeq': 'error',
         'default-case': 'error',
         'semi': 'off',
         'eol-last': ['error', 'always'],
         '@typescript-eslint/semi': ['error'],
 
-        'comma-dangle': ['error', {
-            'arrays': 'always-multiline',
-            'objects': 'always-multiline',
-            'imports': 'always-multiline',
-            'exports': 'always-multiline',
-            'functions': 'always-multiline',
-        }],
+        // 'comma-dangle': ['error', {
+        //     'arrays': 'always-multiline',
+        //     'objects': 'always-multiline',
+        //     'imports': 'always-multiline',
+        //     'exports': 'always-multiline',
+        //     'functions': 'always-multiline',
+        // }],
 
         // 'jsdoc/require-jsdoc': ['error', { require: { 'MethodDefinition': true } }],
         'jsdoc/require-param-type': 0,
