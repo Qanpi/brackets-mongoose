@@ -8,7 +8,7 @@ import {
     mapValues,
 } from "lodash";
 import { Document, HydratedDocument, Model, Query, Types } from "mongoose";
-import { isId} from "./types";
+import { isId } from "./types";
 import { Id } from "brackets-model";
 import { ObjectId } from "mongodb";
 
@@ -48,7 +48,9 @@ export enum TournamentSubPaths {
     stage = "stages",
 }
 
-export type TTournamentSubData = DataTypes[keyof typeof TournamentSubPaths];
+export type TTournamentSubData = DataTypes[keyof typeof TournamentSubPaths] & {
+    __t?: string;
+};
 
 export type TTournamentDocument = HydratedDocument<Document<Id>> & {
     [K in keyof Record<TournamentSubPaths, string>]: Types.DocumentArray<
@@ -73,6 +75,7 @@ export default class Tournament<M extends TTournamentModel> {
     ): Promise<Id | boolean> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
+        data.forEach((d) => (d["__t"] = "NumberId"));
 
         tournament[path].push(...data);
 
@@ -86,12 +89,13 @@ export default class Tournament<M extends TTournamentModel> {
     ): Promise<Id> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
+        data["__t"] = "NumberId";
 
-        const stage = tournament[path].create(data);
-        tournament[path].push(stage);
+        const doc = tournament[path].create(data);
+        tournament[path].push(doc);
 
         await tournament.save();
-        return stage.id as Id || -1;
+        return doc.id === undefined ? -1 : (doc.id as Id);
     }
 
     async update(
@@ -104,6 +108,13 @@ export default class Tournament<M extends TTournamentModel> {
 
         if (isId(filter)) {
             await this.model.findByIdAndUpdate(filter, data);
+
+            // const updated = tournament[path].filter(d => {
+            //     return d.id === filter;
+            // }) as Types.DocumentArray<Types.ArraySubdocument<Id>>;
+
+            // tournament.set(path, updated);
+            await tournament.save();
             return true;
         }
 
@@ -123,14 +134,16 @@ export default class Tournament<M extends TTournamentModel> {
         const path = TournamentSubPaths[table];
 
         if (isId(filter)) {
-            return tournament[path].id(filter)?.toObject() as unknown as Promise<TTournamentSubData>;
+            return tournament[path]
+                .id(filter)
+                ?.toObject() as unknown as Promise<TTournamentSubData>;
         }
 
         let docs: Types.ArraySubdocument<Id>[];
         if (filter === undefined) docs = tournament[path];
         else {
-            docs = tournament[path].filter(d => 
-                isMatch(d, filter)
+            docs = tournament[path].filter(
+                (d) => isMatch(d, filter)
                 // isMatchWith(v, filter, (a, b) => {
                 //     if (a instanceof ObjectId) return a.equals(b);
                 //     else if (b instanceof ObjectId) return b.equals(a);
@@ -139,7 +152,7 @@ export default class Tournament<M extends TTournamentModel> {
             );
         }
 
-        const lean = docs.map(d => d.toObject());
+        const lean = docs.map((d) => d.toObject());
         return lean as TTournamentSubData[];
     }
 
@@ -155,9 +168,7 @@ export default class Tournament<M extends TTournamentModel> {
             const filtered = _filter(
                 tournament[path].toObject() as object[],
                 !matches(filter)
-            ) as unknown as Types.DocumentArray<
-                Types.ArraySubdocument<Id>
-            >;
+            ) as unknown as Types.DocumentArray<Types.ArraySubdocument<Id>>;
             tournament[path] = filtered;
         }
 

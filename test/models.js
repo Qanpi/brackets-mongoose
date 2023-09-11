@@ -174,10 +174,8 @@ const MatchSchema = new mongoose.Schema(
             type: Number,
         },
         games: [MatchGameSchema],
-
     },
     {
-
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
         id: false,
@@ -202,6 +200,13 @@ MatchSchema.discriminator(
     "MatchNumberId",
     new mongoose.Schema({
         id: Number,
+        round_id: {
+            type: Number,
+        },
+        stage_id: {
+            type: Number,
+        },
+        group_id: Number,
     })
 );
 
@@ -220,17 +225,17 @@ const StageSchema = new mongoose.Schema(
             size: Number,
             seedOrdering: {
                 type: [String],
-                enum: [
-                    "natural",
-                    "reverse",
-                    "half_shift",
-                    "reverse_half_shift",
-                    "pair_flip",
-                    "inner_outer",
-                    "groups.effort_balanced",
-                    "groups.seed_optimized",
-                    "groups.bracket_optimized",
-                ],
+                // enum: [
+                //     "natural",
+                //     "reverse",
+                //     "half_shift",
+                //     "reverse_half_shift",
+                //     "pair_flip",
+                //     "inner_outer",
+                //     "groups.effort_balanced",
+                //     "groups.seed_optimized",
+                //     "groups.bracket_optimized",
+                // ],
             },
             balanceByes: Boolean,
             consolationFinal: Boolean,
@@ -258,7 +263,38 @@ const StageSchema = new mongoose.Schema(
         },
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
+        _id: false,
+        id: false,
     }
+);
+
+StageSchema.discriminator(
+    "ObjectId",
+    new mongoose.Schema({}, { _id: true, id: true })
+);
+
+StageSchema.discriminator(
+    "NumberId",
+    new mongoose.Schema(
+        {
+            _id: {
+                type: Number,
+                default: function () {
+                    return this.parent().stages.length;
+                },
+            },
+        },
+        {
+            id: false,
+            virtuals: {
+                id: {
+                    get() {
+                        return this._id;
+                    },
+                },
+            },
+        }
+    )
 );
 
 exports.StageSchema = StageSchema;
@@ -282,8 +318,26 @@ const RoundSchema = new mongoose.Schema(
         },
         toJSON: { virtuals: true, getters: true },
         toObject: { virtuals: true, getters: true },
+        id: false,
     }
 );
+
+RoundSchema.discriminator("ObjectId", new mongoose.Schema({}, { id: true }));
+
+RoundSchema.discriminator(
+    "NumberId",
+    new mongoose.Schema({
+        id: {
+            type: Number,
+            default: function () {
+                return this.parent().rounds.length;
+            },
+        },
+        group_id: Number,
+        stage_id: Number,
+    })
+);
+
 const GroupSchema = new mongoose.Schema(
     {
         number: Number,
@@ -296,12 +350,25 @@ const GroupSchema = new mongoose.Schema(
         },
     },
     {
-        virtuals: {
-            // stage_id: virtualProperty("stage"),
-        },
         toObject: { virtuals: true, getters: true },
         toJSON: { virtuals: true, getters: true },
+        id: false,
     }
+);
+
+GroupSchema.discriminator("ObjectId", new mongoose.Schema({}, { id: true }));
+
+GroupSchema.discriminator(
+    "NumberId",
+    new mongoose.Schema({
+        stage_id: Number,
+        id: {
+            type: Number,
+            default: function () {
+                return this.parent().groups.length;
+            },
+        },
+    })
 );
 
 const TournamentSchema = new mongoose.Schema(

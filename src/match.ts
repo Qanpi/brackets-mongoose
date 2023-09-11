@@ -68,8 +68,10 @@ export default class Match extends MongooseCRUD<Model<any>, "match"> {
         filter: Id | Partial<DataTypes["match"]>,
         data: DataTypes["match"] | Partial<DataTypes["match"]>
     ): Promise<boolean> {
-        // if ("_doc" in data && "games" in data._doc) delete data["games"]; //ugly fix to prevent updates from modifying the value of nested subdoc array
-        if ("games" in data) delete data["games"];
+        //prevent match from updating its games back after deleting them 
+        for (const [, v] of Object.entries(MatchSubPaths)) 
+            if (v in data) delete data[v]; 
+        
         return await super.update(filter, data);
     }
 
