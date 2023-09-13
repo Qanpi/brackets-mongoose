@@ -145,6 +145,8 @@ MatchGameSchema.discriminator(
     "MatchGameNumberId",
     new mongoose.Schema({
         id: Number,
+        parent_id: Number,
+        stage_id: Number
     })
 );
 
@@ -177,7 +179,7 @@ const MatchSchema = new mongoose.Schema(
         status: {
             type: Number,
         },
-        games: [MatchGameSchema],
+        // games: [MatchGameSchema],
     },
     {
         toJSON: { virtuals: true, getters: true },

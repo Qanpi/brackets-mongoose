@@ -103,7 +103,7 @@ export default class Tournament<M extends TTournamentModel> {
         const path = TournamentSubPaths[table];
 
         if (isId(filter)) {
-            await this.model.findByIdAndUpdate(filter, data);
+            // await this.model.findByIdAndUpdate(filter, data);
 
             // const updated = tournament[path].filter(d => {
             //     return d.id === filter;
