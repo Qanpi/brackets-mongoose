@@ -103,6 +103,12 @@ export default class Tournament<M extends TTournamentModel> {
         const path = TournamentSubPaths[table];
 
         if (isId(filter)) {
+            const doc = await this.model.findOne({
+                [`${path}._id`]: filter
+            }) as TTournamentDocument;
+
+            const subdoc = doc[path].id(filter);
+            subdoc!.set(data);
             // await this.model.findByIdAndUpdate(filter, data);
 
             // const updated = tournament[path].filter(d => {
