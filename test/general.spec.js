@@ -420,7 +420,7 @@ describe("Seeding and ordering in elimination", function () {
         assert.strictEqual(finalRoundMatchLB.opponent1.position, 1);
     });
 
-    it.only("should update the orderings in rounds", async function () {
+    it("should update the orderings in rounds", async function () {
         let firstRoundMatchWB = await this.storage.select("match", 0);
 
         // Inner outer before changing.
@@ -509,7 +509,7 @@ describe("Seeding and ordering in elimination", function () {
 });
 
 describe("Best-Of series matches completion", function () {
-    it("should end Bo1 matches", async function () {
+    it.only("should end Bo1 matches", async function () {
         const stage = await this.manager.create.stage({
             name: "Example",
             tournamentId: tournamentId,

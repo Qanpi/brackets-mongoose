@@ -113,35 +113,39 @@ const MatchGameSchema = new mongoose.Schema(
         status: {
             type: Number,
         },
+        parent_id: {
+            type: ObjectId,
+            get: v => v.toString()
+        },
+        stage_id: {
+            type: ObjectId,
+            get: v => v.toString()
+        }
     },
     {
-        virtuals: {
-            //lean queries
-            parent_id: {
-                get() {
-                    if (this instanceof mongoose.Document)
-                        return this.$parent().id;
-
-                    return mongooseLeanVirtuals.parent(this).id;
-                    // return "parent_id";
-                    // return this.$parent()?._id;
-                },
-            },
-
-            stage_id: {
-                get() {
-                    if (this instanceof mongoose.Document)
-                        return this.$parent().stage_id;
-
-                    return mongooseLeanVirtuals.parent(this).stage_id;
-                    // return "stage_id";
-                    // return this.$parent().stage; //FIXME: not typesafe because circular ref
-                },
-            },
-        },
         toJSON: { virtuals: true },
         toObject: { virtuals: true },
     }
+);
+
+
+MatchGameSchema.discriminator(
+    "MatchGameObjectId",
+    new mongoose.Schema(
+        {},
+        {
+            id: true,
+        }
+    )
+);
+
+MatchGameSchema.pre("save", constructCounter("id"));
+
+MatchGameSchema.discriminator(
+    "MatchGameNumberId",
+    new mongoose.Schema({
+        id: Number,
+    })
 );
 
 exports.MatchGameSchema = MatchGameSchema;
