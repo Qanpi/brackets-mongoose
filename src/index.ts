@@ -1,14 +1,14 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
 import mongoose, { Model, Mongoose } from "mongoose";
-import Participant from "./participant";
-import Tournament, {
+import ParticipantCRUD from "./participant";
+import TournamentCRUD, {
     TTournamentModel,
     TTournamentSubData,
     TTournamentTables,
 } from "./tournament";
-import Match from "./match";
+import MatchCRUD from "./match";
 import { Id } from "brackets-model";
-import MatchGame from "./matchGame";
+import MatchGameCRUD from "./matchGame";
 
 enum Tables {
     Participant = "participant",
@@ -20,23 +20,23 @@ enum Tables {
 }
 
 export default class MongooseForBrackets implements CrudInterface {
-    private tournament: Tournament<TTournamentModel>;
-    private participant: Participant;
-    private match: Match;
-    private match_game: MatchGame;
+    private tournament: TournamentCRUD<TTournamentModel>;
+    private participant: ParticipantCRUD;
+    private match: MatchCRUD;
+    private match_game: MatchGameCRUD;
 
     constructor(mongoose: Mongoose) {
         //FIXME: don't rely on magic strings
-        this.tournament = new Tournament(
+        this.tournament = new TournamentCRUD(
             mongoose.model("Tournament") as TTournamentModel
         );
-        this.participant = new Participant(
+        this.participant = new ParticipantCRUD(
             mongoose.model("Participant").discriminators!["ParticipantNumberId"]
         );
-        this.match = new Match(
+        this.match = new MatchCRUD(
             mongoose.model("Match").discriminators!["MatchNumberId"]
         );
-        this.match_game = new MatchGame(
+        this.match_game = new MatchGameCRUD(
             mongoose.model("MatchGame").discriminators!["MatchGameNumberId"]
         );
     }

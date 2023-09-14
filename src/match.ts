@@ -23,4 +23,4 @@ export type TMatchDocument = HydratedDocument<Document<Id>> & {
     >;
 };
 
-export default class Match extends MongooseCRUD<Model<any>, "match">{}
+export default class MatchCRUD extends MongooseCRUD<Model<any>, "match">{}

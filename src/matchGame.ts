@@ -1,5 +1,5 @@
 import { Model } from "mongoose";
 import MongooseCRUD from "./crud";
+import { Id, MatchGame } from "brackets-model";
 
-
-export default class MatchGame extends MongooseCRUD<Model<any>, "match_game">{}
+export default class MatchGameCRUD extends MongooseCRUD<Model<any>, "match_game"> {}

@@ -62,7 +62,7 @@ export type TTournamentModel = Model<any> & {
     findCurrent: () => Query<TTournamentDocument, TTournamentDocument>;
 };
 
-export default class Tournament<M extends TTournamentModel> {
+export default class TournamentCRUD<M extends TTournamentModel> {
     private model: M;
 
     constructor(Tournament: M) {
