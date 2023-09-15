@@ -79,9 +79,9 @@ export default class MongooseCRUD<
         filter: Partial<DataTypes[T]> | Id,
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
-        const setter = flatten(data); 
 
         if (typeof filter === "object") {
+            const setter = flatten(data); 
             await this.model.updateMany(filter, setter);
             return true;
         }
@@ -89,7 +89,7 @@ export default class MongooseCRUD<
         if (isId(filter)) {
             const test = await this.model.findOneAndUpdate(
                 { id: filter },
-                setter,
+                data,
                 { new: true}
             );
             return true;
