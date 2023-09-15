@@ -1,6 +1,7 @@
 const chai = require("chai");
 const { Types } = require("mongoose");
 chai.use(require("chai-as-promised"));
+chai.use(require("chai-deep-match"));
 
 const assert = chai.assert;
 
@@ -762,7 +763,7 @@ describe("Best-Of series matches completion", function () {
         assert.strictEqual(thirdMatch.opponent1.result, "win");
     });
 
-    it.only("should handle match auto-win against a BYE after a BoX series", async function () {
+    it("should handle match auto-win against a BYE after a BoX series", async function () {
         const stage = await this.manager.create.stage({
             name: "Example",
             tournamentId: tournamentId,
@@ -988,7 +989,7 @@ describe("Import / export", function () {
         );
     });
 
-    it("should import data in the this.storage with normalized IDs", async function () {
+    it.only("should import data in the this.storage with normalized IDs", async function () {
         await this.storage.insert("participant", { name: "Unused team" });
 
         const stage1 = await this.manager.create.stage({

@@ -17,8 +17,8 @@ const flatten = (data: object): object => {
         } else setter[key] = value;
     }
 
-    return setter;   
-}
+    return setter;
+};
 
 export default class MongooseCRUD<
     M extends Model<any>,
@@ -42,7 +42,7 @@ export default class MongooseCRUD<
         data: OmitId<DataTypes[T]> | OmitId<DataTypes[T]>[]
     ): Promise<Id | boolean> {
         if (Array.isArray(data)) {
-            await this.model.create(data, { ordered: true }); //not using createMany because pre-save middleware wouldn't execute
+            const test = await this.model.create(data, { ordered: true }); //not using createMany because pre-save middleware wouldn't execute
             return true;
         } else {
             const result = (await this.model.create(data)) as Document<Id>;
@@ -56,7 +56,7 @@ export default class MongooseCRUD<
         if (typeof filter === "object") {
             const selected = await this.model
                 .find(filter)
-                .lean({ virtuals: true, getters: true })
+                .lean({ getters: true })
                 .exec();
             return selected as unknown as Promise<DataTypes[T][]>;
         }
@@ -65,13 +65,13 @@ export default class MongooseCRUD<
             //TODO: custom type predicate for Id
             return (await this.model
                 .findOne({ id: filter })
-                .lean({ virtuals: true, getters: true })
+                .lean({ getters: true })
                 .exec()) as unknown as Promise<DataTypes[T]>;
         }
 
         return (await this.model
             .find({})
-            .lean({ virtuals: true, getters: true })
+            .lean({ getters: true })
             .exec()) as unknown as Promise<DataTypes[T][]>;
     }
 
@@ -79,9 +79,8 @@ export default class MongooseCRUD<
         filter: Partial<DataTypes[T]> | Id,
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
-
         if (typeof filter === "object") {
-            const setter = flatten(data); 
+            const setter = flatten(data);
             await this.model.updateMany(filter, setter);
             return true;
         }
@@ -90,7 +89,7 @@ export default class MongooseCRUD<
             const test = await this.model.findOneAndUpdate(
                 { id: filter },
                 data,
-                { new: true}
+                { new: true }
             );
             return true;
         }
@@ -104,7 +103,7 @@ export default class MongooseCRUD<
     async delete(filter?: Partial<DataTypes[T]>): Promise<boolean> {
         // if (!filter && filter !== 0) await this.model.deleteMany({});
         // if (filter?.id) await this.model.findOneAndDelete({ id: filter });
-        await this.model.deleteMany(filter);
+        const test = await this.model.deleteMany(filter);
 
         return true;
     }

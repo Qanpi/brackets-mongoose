@@ -79,6 +79,8 @@ ParticipantSchema.discriminator(
     "ParticipantNumberId",
     new mongoose.Schema({
         id: Number,
+        _id: { type: ObjectId, select: false },
+        __v: { type: Number, select: false },
     })
 );
 
@@ -115,19 +117,18 @@ const MatchGameSchema = new mongoose.Schema(
         },
         parent_id: {
             type: ObjectId,
-            get: v => v.toString()
+            get: (v) => v.toString(),
         },
         stage_id: {
             type: ObjectId,
-            get: v => v.toString()
-        }
+            get: (v) => v.toString(),
+        },
     },
     {
         toJSON: { virtuals: true },
         toObject: { virtuals: true },
     }
 );
-
 
 MatchGameSchema.discriminator(
     "MatchGameObjectId",
@@ -146,7 +147,7 @@ MatchGameSchema.discriminator(
     new mongoose.Schema({
         id: Number,
         parent_id: Number,
-        stage_id: Number
+        stage_id: Number,
     })
 );
 
