@@ -15,7 +15,7 @@ const { default: Increment } = require("./increment");
 
 function constructCounter(property) {
     async function counter() {
-        if (!this.isNew) return;
+        if (!this.isNew || typeof this.id === "number") return; //if doc is alr saved or is being imported
 
         let metadata = await Increment.findOne({
             model: this.constructor.modelName,
