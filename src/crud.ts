@@ -12,7 +12,7 @@ const flatten = (data: object): object => {
             for (const [k, v] of Object.entries(value as object)) {
                 const dotkey = `${key}.${k}`;
 
-                setter[dotkey] = v;
+                setter[dotkey] = v === undefined ? null : v; //undefined -> null otherwise mongoose will ignore the field
             }
         } else setter[key] = value;
     }
@@ -90,7 +90,7 @@ export default class MongooseCRUD<
             const test = await this.model.findOneAndUpdate(
                 { id: filter },
                 setter,
-                { new: true }
+                { new: true}
             );
             return true;
         }
