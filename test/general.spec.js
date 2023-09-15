@@ -509,7 +509,7 @@ describe("Seeding and ordering in elimination", function () {
 });
 
 describe("Best-Of series matches completion", function () {
-    it.only("should end Bo1 matches", async function () {
+    it("should end Bo1 matches", async function () {
         const stage = await this.manager.create.stage({
             name: "Example",
             tournamentId: tournamentId,
@@ -762,7 +762,7 @@ describe("Best-Of series matches completion", function () {
         assert.strictEqual(thirdMatch.opponent1.result, "win");
     });
 
-    it("should handle match auto-win against a BYE after a BoX series", async function () {
+    it.only("should handle match auto-win against a BYE after a BoX series", async function () {
         const stage = await this.manager.create.stage({
             name: "Example",
             tournamentId: tournamentId,
@@ -775,6 +775,8 @@ describe("Best-Of series matches completion", function () {
                 consolationFinal: true,
             },
         });
+
+        const matches = await this.storage.select("match"); 
 
         await this.manager.update.matchGame({
             id: 0,

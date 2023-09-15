@@ -2,7 +2,7 @@ import { DataTypes, OmitId } from "brackets-manager";
 import { Document, FilterQuery, Model } from "mongoose";
 import { isId } from "./types";
 import { Id } from "brackets-model";
-import { mergeWith } from "lodash";
+import { mergeWith, cloneDeep } from "lodash";
 
 export default class MongooseCRUD<
     M extends Model<any>,
@@ -69,21 +69,20 @@ export default class MongooseCRUD<
         }
 
         if (isId(filter)) {
+            const setter: Record<string, any> = {};
             for (const [key, value] of Object.entries(data)) {
-                if (typeof value === "object") {
+                if (typeof value === "object" && value !== null) {
                     for (const [k, v] of Object.entries(value as object)) {
                         const dotkey = `${key}.${k}`;
                         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                        data[dotkey as keyof typeof data] = v;
+                        setter[dotkey] = v;
                     }
-
-                    delete data[key as keyof typeof data];
-                }
+                } else setter[key] = value;
             }
 
             const test = await this.model.findOneAndUpdate(
                 { id: filter },
-                data,
+                setter,
                 { new: true }
             );
             return true;
