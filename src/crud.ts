@@ -4,6 +4,22 @@ import { isId } from "./types";
 import { Id } from "brackets-model";
 import { mergeWith, cloneDeep } from "lodash";
 
+const flatten = (data: object): object => {
+    const setter: Record<string, any> = {};
+
+    for (const [key, value] of Object.entries(data)) {
+        if (typeof value === "object" && value !== null) {
+            for (const [k, v] of Object.entries(value as object)) {
+                const dotkey = `${key}.${k}`;
+
+                setter[dotkey] = v;
+            }
+        } else setter[key] = value;
+    }
+
+    return setter;   
+}
+
 export default class MongooseCRUD<
     M extends Model<any>,
     T extends keyof DataTypes
@@ -63,23 +79,14 @@ export default class MongooseCRUD<
         filter: Partial<DataTypes[T]> | Id,
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
+        const setter = flatten(data); 
+
         if (typeof filter === "object") {
-            await this.model.updateMany(filter, data);
+            await this.model.updateMany(filter, setter);
             return true;
         }
 
         if (isId(filter)) {
-            const setter: Record<string, any> = {};
-            for (const [key, value] of Object.entries(data)) {
-                if (typeof value === "object" && value !== null) {
-                    for (const [k, v] of Object.entries(value as object)) {
-                        const dotkey = `${key}.${k}`;
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-                        setter[dotkey] = v;
-                    }
-                } else setter[key] = value;
-            }
-
             const test = await this.model.findOneAndUpdate(
                 { id: filter },
                 setter,
