@@ -1,4 +1,4 @@
-import { DataTypes } from "brackets-manager";
+import { DataTypes, OmitId } from "brackets-manager";
 import {
     filter as _filter,
     isMatch,
@@ -62,40 +62,36 @@ export type TTournamentModel = Model<any> & {
     findCurrent: () => Query<TTournamentDocument, TTournamentDocument>;
 };
 
-export default class Tournament<M extends TTournamentModel> {
+export default class TournamentCRUD<M extends TTournamentModel> {
     private model: M;
 
     constructor(Tournament: M) {
         this.model = Tournament;
     }
 
-    async insertMany(
+    async insert(
         table: TTournamentTables,
-        data: TTournamentSubData[]
+        data: OmitId<TTournamentSubData> | OmitId<TTournamentSubData>[]
     ): Promise<Id | boolean> {
         const tournament = await this.model.findCurrent();
         const path = TournamentSubPaths[table];
-        data.forEach((d) => (d["__t"] = "NumberId"));
 
-        tournament[path].push(...data);
+        if (Array.isArray(data)) {
+            data.forEach((d) => (d["__t"] = "NumberId"));
 
-        await tournament.save();
-        return true;
-    }
+            tournament[path].push(...data);
 
-    async insertOne(
-        table: TTournamentTables,
-        data: TTournamentSubData
-    ): Promise<Id> {
-        const tournament = await this.model.findCurrent();
-        const path = TournamentSubPaths[table];
-        data["__t"] = "NumberId";
+            await tournament.save();
+            return true;
+        } else {
+            data["__t"] = "NumberId";
 
-        const doc = tournament[path].create(data);
-        tournament[path].push(doc);
+            const doc = tournament[path].create(data);
+            tournament[path].push(doc);
 
-        await tournament.save();
-        return doc.id === undefined ? -1 : (doc.id as Id);
+            await tournament.save();
+            return doc.id === undefined ? -1 : (doc.id as Id);
+        }
     }
 
     async update(
@@ -107,7 +103,13 @@ export default class Tournament<M extends TTournamentModel> {
         const path = TournamentSubPaths[table];
 
         if (isId(filter)) {
-            await this.model.findByIdAndUpdate(filter, data);
+            const doc = await this.model.findOne({
+                [`${path}._id`]: filter
+            }) as TTournamentDocument;
+
+            const subdoc = doc[path].id(filter);
+            subdoc!.set(data);
+            // await this.model.findByIdAndUpdate(filter, data);
 
             // const updated = tournament[path].filter(d => {
             //     return d.id === filter;

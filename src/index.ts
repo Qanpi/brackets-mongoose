@@ -1,9 +1,14 @@
 import { CrudInterface, DataTypes, OmitId } from "brackets-manager";
 import mongoose, { Model, Mongoose } from "mongoose";
-import Participant from "./participant";
-import Tournament, { TTournamentModel } from "./tournament";
-import Match from "./match";
+import ParticipantCRUD from "./participant";
+import TournamentCRUD, {
+    TTournamentModel,
+    TTournamentSubData,
+    TTournamentTables,
+} from "./tournament";
+import MatchCRUD from "./match";
 import { Id } from "brackets-model";
+import MatchGameCRUD from "./matchGame";
 
 enum Tables {
     Participant = "participant",
@@ -15,84 +20,88 @@ enum Tables {
 }
 
 export default class MongooseForBrackets implements CrudInterface {
-    private tournament: Tournament<TTournamentModel>;
-    private participant: Participant;
-    private match: Match;
+    private tournament: TournamentCRUD<TTournamentModel>;
+    private participant: ParticipantCRUD;
+    private match: MatchCRUD;
+    private match_game: MatchGameCRUD;
 
     constructor(mongoose: Mongoose) {
         //FIXME: don't rely on magic strings
-        this.tournament = new Tournament(
+        this.tournament = new TournamentCRUD(
             mongoose.model("Tournament") as TTournamentModel
         );
-        this.participant = new Participant(mongoose.model("Participant").discriminators!["ParticipantNumberId"]);
-        this.match = new Match(mongoose.model("Match").discriminators!["MatchNumberId"]);
+        this.participant = new ParticipantCRUD(
+            mongoose.model("Participant").discriminators!["ParticipantNumberId"]
+        );
+        this.match = new MatchCRUD(
+            mongoose.model("Match").discriminators!["MatchNumberId"]
+        );
+        this.match_game = new MatchGameCRUD(
+            mongoose.model("MatchGame").discriminators!["MatchGameNumberId"]
+        );
     }
 
     insert<T extends keyof DataTypes>(
         table: T,
-        value: OmitId<DataTypes[T]>
+        data: OmitId<DataTypes[T]>
     ): Promise<number>;
     insert<T extends keyof DataTypes>(
         table: T,
-        values: OmitId<DataTypes[T]>[]
+        data: OmitId<DataTypes[T]>[]
     ): Promise<boolean>;
     async insert<T extends keyof DataTypes>(
         table: T,
-        data: OmitId<DataTypes[T]> | OmitId<DataTypes[T]>[]
+        data: OmitId<DataTypes[T]>[] | OmitId<DataTypes[T]>
     ): Promise<Id | boolean> {
         switch (table) {
             case Tables.Participant:
-                if (Array.isArray(data)) {
-                    return this.participant.insertMany(
-                        data as unknown as DataTypes[Tables.Participant][]
-                    );
-                } else {
-                    return this.participant.insertOne(
-                        data as unknown as DataTypes[Tables.Participant]
-                    );
-                }
+                return this.participant.insert(
+                    data as
+                        | OmitId<DataTypes["participant"]>[]
+                        | OmitId<DataTypes["participant"]>
+                );
+            case Tables.Match:
+                return this.match.insert(
+                    data as
+                        | OmitId<DataTypes["match"]>[]
+                        | OmitId<DataTypes["match"]>
+                );
+            case Tables.MatchGame:
+                return this.match_game.insert(
+                    data as
+                        | OmitId<DataTypes["match_game"]>[]
+                        | OmitId<DataTypes["match_game"]>
+                );
             case Tables.Stage:
             case Tables.Group:
             case Tables.Round:
-                if (Array.isArray(data)) {
-                    return this.tournament.insertMany(
-                        table,
-                        data as unknown as DataTypes[
-                            | Tables.Stage
-                            | Tables.Group
-                            | Tables.Round][]
-                    );
-                } else {
-                    return this.tournament.insertOne(
-                        table,
-                        data as unknown as DataTypes[
-                            | Tables.Stage
-                            | Tables.Group
-                            | Tables.Round]
-                    );
-                }
-            case Tables.Match:
-                if (Array.isArray(data)) {
-                    return this.match.insertMany(
-                        data as unknown as DataTypes[Tables.Match][]
-                    );
-                } else {
-                    return this.match.insertOne(
-                        data as unknown as DataTypes[Tables.Match]
-                    );
-                }
-            case Tables.MatchGame:
-                if (Array.isArray(data)) {
-                    return this.match.insertManySubdocs(
-                        table,
-                        data as unknown as DataTypes[Tables.MatchGame][]
-                    );
-                } else {
-                    return this.match.insertOneSubdoc(
-                        table,
-                        data as unknown as DataTypes[Tables.MatchGame]
-                    );
-                }
+                return this.tournament.insert(
+                    table,
+                    data as
+                        | OmitId<TTournamentSubData>[]
+                        | OmitId<TTournamentSubData>
+                );
+            // if (Array.isArray(data)) {
+            //     return this.match.insertMany(
+            //         data as unknown as DataTypes[Tables.Match][]
+            //     );
+            // } else {
+            //     return this.match.insertOne(
+            //         data as unknown as DataTypes[Tables.Match]
+            //     );
+            // }
+            // case Tables.MatchGame:
+            //     if (Array.isArray(data)) {
+            //         return this.match.insertManySubdocs(
+            //             table,
+            //             data as unknown as DataTypes[Tables.MatchGame][]
+            //         );
+            //     } else {
+            //         return this.match.insertOneSubdoc(
+            //             table,
+            //             data as unknown as DataTypes[Tables.MatchGame]
+            //         );
+            //     }
 
             default:
                 return false;
@@ -113,24 +122,29 @@ export default class MongooseForBrackets implements CrudInterface {
         filter?: Partial<DataTypes[T]> | Id
     ): Promise<DataTypes[T][] | DataTypes[T] | null> {
         switch (table) {
+            case Tables.Match:
+            case Tables.MatchGame:
             case Tables.Participant:
-                return this.participant.select(filter) as Promise<
+                return this[
+                    table as
+                        | Tables.Match
+                        | Tables.MatchGame
+                        | Tables.Participant
+                ].select(filter) as Promise<
                     DataTypes[T][] | DataTypes[T] | null
                 >;
             case Tables.Group:
-            case Tables.Round:
             case Tables.Stage:
+            case Tables.Round:
                 return this.tournament.select(table, filter) as Promise<
                     DataTypes[T][] | DataTypes[T] | null
                 >;
-            case Tables.Match:
-                return this.match.select(filter) as Promise<
-                    DataTypes[T][] | DataTypes[T] | null
-                >;
-            case Tables.MatchGame:
-                return this.match.selectSubdocs(table, filter) as Promise<
-                    DataTypes[T][] | DataTypes[T] | null
-                >;
+            // return this.match.select(filter) as Promise<
+            //     DataTypes[T][] | DataTypes[T] | null
+            // >;
+            // return this.match.selectSubdocs(table, filter) as Promise<
+            //     DataTypes[T][] | DataTypes[T] | null
+            // >;
             default:
                 return null;
         }
@@ -152,16 +166,19 @@ export default class MongooseForBrackets implements CrudInterface {
         data: Partial<DataTypes[T]> | DataTypes[T]
     ): Promise<boolean> {
         switch (table) {
-            case Tables.Participant:
-                return this.participant.update(filter, data);
             case Tables.Group:
             case Tables.Round:
             case Tables.Stage:
                 return this.tournament.update(table, filter, data);
             case Tables.Match:
-                return this.match.update(filter, data);
+            case Tables.Participant:
             case Tables.MatchGame:
-                return this.match.updateMatchGames(filter, data);
+                return this[
+                    table as
+                        | Tables.Match
+                        | Tables.Participant
+                        | Tables.MatchGame
+                ].update(filter, data);
             default:
                 return false;
         }
@@ -177,16 +194,19 @@ export default class MongooseForBrackets implements CrudInterface {
         filter?: Partial<DataTypes[T]>
     ): Promise<boolean> {
         switch (table) {
-            case Tables.Participant:
-                return this.participant.delete(filter);
             case Tables.Group:
             case Tables.Round:
             case Tables.Stage:
                 return this.tournament.delete(table, filter);
+            case Tables.Participant:
             case Tables.Match:
-                return this.match.delete(filter);
             case Tables.MatchGame:
-                return this.match.deleteSubdocs(table, filter);
+                return this[
+                    table as
+                        | Tables.Participant
+                        | Tables.Match
+                        | Tables.MatchGame
+                ].delete(filter);
             // if (!filter) {
             //     return Match.updateMany({}, { $set: { games: undefined } })
             //         .exec()

@@ -1,6 +1,7 @@
 const chai = require("chai");
 const { Types } = require("mongoose");
 chai.use(require("chai-as-promised"));
+chai.use(require("chai-deep-match"));
 
 const assert = chai.assert;
 
@@ -420,7 +421,7 @@ describe("Seeding and ordering in elimination", function () {
         assert.strictEqual(finalRoundMatchLB.opponent1.position, 1);
     });
 
-    it.only("should update the orderings in rounds", async function () {
+    it("should update the orderings in rounds", async function () {
         let firstRoundMatchWB = await this.storage.select("match", 0);
 
         // Inner outer before changing.
@@ -776,6 +777,8 @@ describe("Best-Of series matches completion", function () {
             },
         });
 
+        const matches = await this.storage.select("match"); 
+
         await this.manager.update.matchGame({
             id: 0,
             opponent1: { result: "win" },
@@ -986,7 +989,7 @@ describe("Import / export", function () {
         );
     });
 
-    it("should import data in the this.storage with normalized IDs", async function () {
+    it.only("should import data in the this.storage with normalized IDs", async function () {
         await this.storage.insert("participant", { name: "Unused team" });
 
         const stage1 = await this.manager.create.stage({

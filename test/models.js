@@ -15,7 +15,7 @@ const { default: Increment } = require("./increment");
 
 function constructCounter(property) {
     async function counter() {
-        if (!this.isNew) return;
+        if (!this.isNew || typeof this.id === "number") return; //if doc is alr saved or is being imported
 
         let metadata = await Increment.findOne({
             model: this.constructor.modelName,
@@ -79,6 +79,8 @@ ParticipantSchema.discriminator(
     "ParticipantNumberId",
     new mongoose.Schema({
         id: Number,
+        _id: { type: ObjectId, select: false },
+        __v: { type: Number, select: false },
     })
 );
 
@@ -113,35 +115,40 @@ const MatchGameSchema = new mongoose.Schema(
         status: {
             type: Number,
         },
+        parent_id: {
+            type: ObjectId,
+            get: (v) => v.toString(),
+        },
+        stage_id: {
+            type: ObjectId,
+            get: (v) => v.toString(),
+        },
     },
     {
-        virtuals: {
-            //lean queries
-            parent_id: {
-                get() {
-                    if (this instanceof mongoose.Document)
-                        return this.$parent().id;
-
-                    return mongooseLeanVirtuals.parent(this).id;
-                    // return "parent_id";
-                    // return this.$parent()?._id;
-                },
-            },
-
-            stage_id: {
-                get() {
-                    if (this instanceof mongoose.Document)
-                        return this.$parent().stage_id;
-
-                    return mongooseLeanVirtuals.parent(this).stage_id;
-                    // return "stage_id";
-                    // return this.$parent().stage; //FIXME: not typesafe because circular ref
-                },
-            },
-        },
         toJSON: { virtuals: true },
         toObject: { virtuals: true },
     }
+);
+
+MatchGameSchema.discriminator(
+    "MatchGameObjectId",
+    new mongoose.Schema(
+        {},
+        {
+            id: true,
+        }
+    )
+);
+
+MatchGameSchema.pre("save", constructCounter("id"));
+
+MatchGameSchema.discriminator(
+    "MatchGameNumberId",
+    new mongoose.Schema({
+        id: Number,
+        parent_id: Number,
+        stage_id: Number,
+    })
 );
 
 exports.MatchGameSchema = MatchGameSchema;
@@ -173,7 +180,7 @@ const MatchSchema = new mongoose.Schema(
         status: {
             type: Number,
         },
-        games: [MatchGameSchema],
+        // games: [MatchGameSchema],
     },
     {
         toJSON: { virtuals: true, getters: true },

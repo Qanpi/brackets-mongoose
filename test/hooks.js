@@ -1,6 +1,6 @@
 const { default: mongoose } = require("mongoose");
 const { MongoMemoryServer } = require("mongodb-memory-server");
-const { TournamentSchema } = require("./models");
+const { TournamentSchema, MatchGameSchema } = require("./models");
 const { ParticipantSchema } = require("./models");
 const { MatchSchema } = require("./models");
 const { default: MongooseForBrackets } = require("../dist/index");
@@ -18,6 +18,7 @@ exports.mochaGlobalSetup = async function () {
     await mongoose.model("Tournament", TournamentSchema);
     await mongoose.model("Participant", ParticipantSchema);
     await mongoose.model("Match", MatchSchema);
+    await mongoose.model("MatchGame", MatchGameSchema);
 
     console.log("Succesfully setup the database.");
 };
